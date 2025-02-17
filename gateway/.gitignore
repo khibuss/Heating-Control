@@ -1,6 +1,7 @@
 node_modules
 
 package-lock.json
-
+certificates/*
+!certificates/README.md
 .env
 *.log
