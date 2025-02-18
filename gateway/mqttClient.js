@@ -1,6 +1,5 @@
+// Questo per file per ora è inutilizzato ma servirà forse più avanti
 const awsIot = require('aws-iot-device-sdk-v2');
-const dotenv = require('dotenv');
-dotenv.config();
 
 const mqttClient = new awsIot.mqtt.MqttClient();
 const builder = awsIot.iot.AwsIotMqttConnectionConfigBuilder.new_mtls_builder_from_path(
@@ -19,7 +18,7 @@ function startMqttClient() {
     return connection.connect().then(() => {
         console.log("Connesso ad AWS IoT");
 
-        connection.subscribe('sensors/temperature/+', awsIot.mqtt.QoS.AtMostOnce, (topic, payload) => {
+        connection.subscribe('$aws/things/esit-obj1/shadow/+/accepted', awsIot.mqtt.QoS.AtMostOnce, (topic, payload) => {
             const decoder = new TextDecoder('utf-8');
             const decodedPayload = decoder.decode(payload);
             temperatureData[topic] = decodedPayload;
