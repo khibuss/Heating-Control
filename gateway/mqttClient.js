@@ -1,5 +1,6 @@
 // Questo per file per ora è inutilizzato ma servirà forse più avanti
 const awsIot = require('aws-iot-device-sdk-v2');
+const ACTUATOR_THINGS = ["actuator1", "actuator2"];
 
 const mqttClient = new awsIot.mqtt.MqttClient();
 const builder = awsIot.iot.AwsIotMqttConnectionConfigBuilder.new_mtls_builder_from_path(
@@ -7,18 +8,40 @@ const builder = awsIot.iot.AwsIotMqttConnectionConfigBuilder.new_mtls_builder_fr
     "certificates/device-private.pem.key"
 );
 
+
 builder.with_client_id("TemperatureReader");
 builder.with_endpoint(process.env.AWS_ENDPOINT);
 
 const connection = mqttClient.new_connection(builder.build());
 let temperatureData = {};
+let statusAct = {};
+let isConnected = false;
+
 
 // Funzione per avviare la connessione MQTT
 function startMqttClient() {
     return connection.connect().then(() => {
         console.log("Connesso ad AWS IoT");
 
-        connection.subscribe('$aws/things/esit-obj1/shadow/+/accepted', awsIot.mqtt.QoS.AtMostOnce, (topic, payload) => {
+        isConnected = true;
+
+
+        //I sensori e gli attuatori pubblicano il loro stato su shadow/update
+        connection.subscribe('$aws/things/+/shadow/update', awsIot.mqtt.QoS.AtMostOnce, (topic, payload) => {
+            const decoder = new TextDecoder('utf-8');
+            const decodedPayload = decoder.decode(payload);
+            console.log(`Ricevuto messaggio su ${topic}:`, decodedPayload);
+
+            const thingName = topic.split("/")[2];
+            if (topic.includes('/sensor')) {
+                temperatureData[thingName] = decodedPayload;
+            }
+            if (topic.includes('actuator')) {
+                statusAct[thingName] = decodedPayload;
+            }
+        });
+
+        connection.subscribe('$aws/things/+/shadow/update/accepted', awsIot.mqtt.QoS.AtMostOnce, (topic, payload) => {
             const decoder = new TextDecoder('utf-8');
             const decodedPayload = decoder.decode(payload);
             temperatureData[topic] = decodedPayload;
@@ -29,10 +52,64 @@ function startMqttClient() {
     });
 }
 
+
+// Function to update the state of all actuators
+function send_central_updateActuator(power) {
+    console.log("in");
+    if (isConnected) {
+        ACTUATOR_THINGS.forEach(actuator => {
+            const shadowUpdate = {
+                state: {
+                    desired: {
+                        status: power ? "ON" : "OFF",
+                    },
+                },
+            };
+            connection.publish(`$aws/things/${actuator}/shadow/update`, JSON.stringify(shadowUpdate), awsIot.mqtt.QoS.AtMostOnce);
+        });
+        console.log(`🚀 Actuators turned ${power ? "ON" : "OFF"}`);
+    }
+    else {
+        console.log("no");
+    }
+
+
+}
+
+// Function to update the state of a single specified actuator
+function send_single_updateActuator(actName, power) {
+
+    if (isConnected) {
+        const shadowUpdate = {
+            state: {
+                desired: {
+                    status: power ? "ON" : "OFF",
+                },
+            },
+        };
+        connection.publish(`$aws/things/${actName}/shadow/update`, JSON.stringify(shadowUpdate), awsIot.mqtt.QoS.AtMostOnce);
+
+        console.log(`🚀 ${actName} turned ${power ? "ON" : "OFF"}`);
+    }
+
+
+}
+
+
+
+
 // Funzione per ottenere i dati
-function getTemperatureData() {
+function getTemperatureData(sensorId) {
+    return temperatureData[sensorId];
+}
+
+function getAllTemperatureData() {
     return temperatureData;
 }
 
+function getStatusActuators(actId) {
+    return statusAct[actId];
+}
+
 // Esportiamo le funzioni
-module.exports = { startMqttClient, getTemperatureData };
+module.exports = { startMqttClient, getTemperatureData, getStatusActuators, send_central_updateActuator, getAllTemperatureData, send_single_updateActuator };
