@@ -1,14 +1,16 @@
-const { send_central_updateActuator, test } = require("./mqttClient");
+const { publish_central_updateActuator } = require("./mqttClient");
 
 const LOWER_THRESHOLD_TEMP = 20; // Temperature upper limit to trigger actuators
 const UPPER_THRESHOLD_TEMP = 40; // Temperature lower limit to trigger actuators
 
 statusActs = false; //Variabile per lo stato di tutti gli attuatori
 
+const ACTUATOR_THINGS = [{ id: "actuator1", status: "true" }, { id: "actuator2", status: "false" }, { id: "actuator3", status: "true" }];
+
 const sensorData = [22, 10] // Valori momentanei da sostituire con quelli reali
-const configuration = {
-    type: "single",
-    sensorReference: "sensor1",
+let configuration = {
+    mode: "single",
+    selectedSensor: "sensor1",
 };
 
 // Function to calculate average temperature of all sensors
@@ -21,68 +23,70 @@ function getAverageTemperature() {
 }
 
 // Function to check temperatures at intervals
-function startTemperatureCheck() {
+function startHeatingSystem() {
 
     setInterval(() => {
-        if (configuration.type === "global") {
+        // Gestione configurazione media globale
+        if (configuration.mode === "global") {
             const avgTemp = getAverageTemperature();
             if (avgTemp != null) {
-                console.log(`📊 Average Temperature: ${avgTemp.toFixed(2)}°C`);
-
-                // Controlla che la temperatura media; se questa è al di sotto del lower threshold e gli attuatori sono spenti, allora viene mandata
-                // la richiesta per accenderli; se questa è al di sopra dell'upper threshold e gli attuatori sono accesi, allora viene mandata
-                // la richiesta per spegnerli; 
-                if (avgTemp < LOWER_THRESHOLD_TEMP && statusActs != true) {
-                    console.log(`Under lower threshold (${LOWER_THRESHOLD_TEMP}°C)! Activating actuators...`);
-                    statusActs = true;
-                    send_central_updateActuator(true);
-
-                }
-                else {
-                    if (avgTemp > UPPER_THRESHOLD_TEMP && statusActs != false) {
-                        console.log(`🔥 Over upper threshold (${UPPER_THRESHOLD_TEMP}°C)!. Disactivating actuators.`);
-                        statusActs = false;
-                        send_central_updateActuator(false);
-                    }
-                    else {
-                        console.log(`No action`);
-
-                    }
-                }
-
-
+                checkTemperature(avgTemp);
             } else {
                 console.log("⚠️ No sensor data available yet.");
             }
         }
+        // Gestione configurazione singolo sensore
         else {
-            sensorName = configuration.sensorReference;
-            temp = 15; //momentanea
-
-            if (temp < LOWER_THRESHOLD_TEMP && statusActs != true) {
-                console.log(`Temperature of ${sensorName} under lower threshold (${LOWER_THRESHOLD_TEMP}°C)! Activating actuators...`);
-                statusActs = true;
-                send_central_updateActuator(true);
-
-            }
-            else {
-                if (temp > UPPER_THRESHOLD_TEMP && statusActs != false) {
-                    console.log(`🔥 Temperature of ${sensorName} over upper threshold (${UPPER_THRESHOLD_TEMP}°C)!. Disactivating actuators...`);
-                    statusActs = false;
-                    send_central_updateActuator(false);
-                }
-                else {
-                    console.log(`No action`);
-
-                }
+            temp = 30; //momentanea
+            if (temp != null) {
+                checkTemperature(temp);
+            } else {
+                console.log("⚠️ No sensor data detected.");
             }
         }
     }, 5000); // Check every 5 seconds
+}
+
+function checkTemperature(temperature) {
+
+    console.log(`📊 Temperature compared: ${temperature.toFixed(2)}°C`);
+
+    // Controlla la temperatura passata come parametro e la confronta con le soglie; se questa è al di sotto del lower threshold
+    // e gli attuatori sono spenti, allora viene mandata la richiesta per accenderli; se questa è al di sopra dell'upper threshold 
+    // e gli attuatori sono accesi, allora viene mandata la richiesta per spegnerli; 
+    if (temperature < LOWER_THRESHOLD_TEMP && statusActs != true) {
+        console.log(`Temperature under lower threshold (${LOWER_THRESHOLD_TEMP}°C)! Activating actuators...`);
+        statusActs = true;
+        publish_central_updateActuator(true);
+
+    }
+    else {
+        if (temperature > UPPER_THRESHOLD_TEMP && statusActs != false) {
+            console.log(`🔥 Temperature over upper threshold (${UPPER_THRESHOLD_TEMP}°C)!. Disactivating actuators...`);
+            statusActs = false;
+            publish_central_updateActuator(false);
+        }
+        else {
+            //console.log(`No action`);
+
+        }
+    }
+}
+
+function setConfiguration(newMode, sensorId = null) {
+    configuration.mode = newMode;
+    configuration.selectedSensor = sensorId;
+
+    console.log(`Mode set to: ${mode}, Selected sensor: ${selectedSensor}`);
+}
+
+function getAllActuators() {
+    return ACTUATOR_THINGS;
 }
 
 
 
 // Export function to start monitoring
 module.exports = {
-    startTemperatureCheck,
+    startHeatingSystem, setConfiguration, getAllActuators
 };

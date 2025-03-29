@@ -3,16 +3,19 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 dotenv.config();
 const app = express()
-const { startMqttClient, getTemperatureData, getStatusActuators } = require('./mqttClient'); // Importa la connessione MQTT
+
+const { startMqttClient, getTemperatureData, getStatusActuators, publish_central_updateActuator,
+    publish_single_updateActuator } = require('./mqttClient'); // Importa la connessione MQTT
 const { getLastReading } = require('./dbService');
-const { startTemperatureCheck } = require('./controllerActuator');
+const { startHeatingSystem, getAllActuators } = require('./controllerActuator');
 
+app.use(express.json()); // Parse JSON request bodies
+app.use(cors()); // Allow frontend to access backend
 
-app.use(cors());
 const port = 8000;
 
 startMqttClient();
-startTemperatureCheck();
+startHeatingSystem();
 
 app.listen(port, () => {
     console.log("🚀 Server running on http://localhost:" + port);
@@ -47,6 +50,33 @@ app.get('/statusAct/:idAct', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).send('Error retrieving data');
+    }
+});
+
+// API to get the list of actuators
+app.get("/listActuators", (req, res) => {
+    res.json(getAllActuators());
+})
+
+app.post('/centralActuators', (req, res) => {
+    console.log('Received update act:', req.body);
+
+    publish_central_updateActuator(req.body.stateDesired);
+    res.json({ success: true, receivedData: req.body });
+});
+
+// API to update actuator status
+app.post("/singleActuator", (req, res) => {
+    console.log('Received update act:', req.body);
+    const id = req.body.id;
+    const stateDesired = req.body.stateDesired;
+
+    const actuator = getAllActuators().find((a) => a.id === id);
+    if (actuator) {
+        publish_single_updateActuator(id, stateDesired);
+        res.json({ success: true, receivedData: req.body });
+    } else {
+        res.status(404).json({ error: "Actuator not found" });
     }
 });
 

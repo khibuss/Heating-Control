@@ -54,8 +54,7 @@ function startMqttClient() {
 
 
 // Function to update the state of all actuators
-function send_central_updateActuator(power) {
-    console.log("in");
+function publish_central_updateActuator(power) {
     if (isConnected) {
         ACTUATOR_THINGS.forEach(actuator => {
             const shadowUpdate = {
@@ -70,14 +69,14 @@ function send_central_updateActuator(power) {
         console.log(`🚀 Actuators turned ${power ? "ON" : "OFF"}`);
     }
     else {
-        console.log("no");
+        console.log("Disconnected");
     }
 
 
 }
 
 // Function to update the state of a single specified actuator
-function send_single_updateActuator(actName, power) {
+function publish_single_updateActuator(actName, power) {
 
     if (isConnected) {
         const shadowUpdate = {
@@ -112,4 +111,4 @@ function getStatusActuators(actId) {
 }
 
 // Esportiamo le funzioni
-module.exports = { startMqttClient, getTemperatureData, getStatusActuators, send_central_updateActuator, getAllTemperatureData, send_single_updateActuator };
+module.exports = { startMqttClient, getTemperatureData, getStatusActuators, publish_central_updateActuator, getAllTemperatureData, publish_single_updateActuator };
