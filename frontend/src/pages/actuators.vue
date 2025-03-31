@@ -23,7 +23,7 @@ export default {
         },
         async setSingleActuator(id, stateDesired){
             try {
-                const response = await fetch('http://localhost:8000/singleActuator', {
+                const response = await fetch('http://localhost:8000/updateActuator', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -37,22 +37,22 @@ export default {
                 console.error('Error sending data:', error);
             }
         },
-        async setCentralActuator(stateDesired) {
-            try {
-                const response = await fetch('http://localhost:8000/centralActuators', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({stateDesired})
-                });
+        // async setCentralActuator(stateDesired) {
+        //     try {
+        //         const response = await fetch('http://localhost:8000/centralActuators', {
+        //             method: 'POST',
+        //             headers: {
+        //                 'Content-Type': 'application/json'
+        //             },
+        //             body: JSON.stringify({stateDesired})
+        //         });
 
-                const data = await response.json();
-                this.serverResponseCentral = data.receivedData.stateDesired ? "Turned ON" : "Turned OFF";
-            } catch (error) {
-                console.error('Error sending data:', error);
-            }
-        },
+        //         const data = await response.json();
+        //         this.serverResponseCentral = data.receivedData.stateDesired ? "Turned ON" : "Turned OFF";
+        //     } catch (error) {
+        //         console.error('Error sending data:', error);
+        //     }
+        // },
     },
 };
 </script>
@@ -61,9 +61,15 @@ export default {
     <h1>Actuator Control</h1>
     <div>
       <h2>Central control</h2>
-      <button @click="setCentralActuator(true)">Activate all actuators</button>
-      <button @click="setCentralActuator(false)">Deactivate all actuators</button>
-      <p>Server Response: {{ serverResponseCentral }}</p>
+      <button @click="actuators.forEach(actuator => setSingleActuator(actuator.id, true))">New Activate All</button>
+      <button @click="actuators.forEach(actuator => setSingleActuator(actuator.id, false))">New Deactivate All</button>
+
+      
+      <!-- <button @click="setCentralActuator(true)">Activate all actuators</button> -->
+      <!-- <button @click="setCentralActuator(false)">Deactivate all actuators</button> -->
+      <p>Server Response: {{ serverResponseSingles["actuator1"] }}</p> <!-- magari si itera sulla lista delle risposte e si stampano tutte, oppure si stampa OK se tutte sono OK-->
+      <!-- Ma dirò che secondo me possiamo anche levarla la risposta del server -->
+        
     </div>
     <div>
     <h2>Single Control</h2>

@@ -4,8 +4,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 const app = express()
 
-const { startMqttClient, getTemperatureData, getStatusActuators, publish_central_updateActuator,
-    publish_single_updateActuator } = require('./mqttClient'); // Importa la connessione MQTT
+const { startMqttClient, getTemperatureData, getStatusActuators, publish_single_updateActuator } = require('./mqttClient'); // Importa la connessione MQTT
 const { getLastReading } = require('./dbService');
 const { startHeatingSystem, getAllActuators } = require('./controllerActuator');
 
@@ -58,15 +57,15 @@ app.get("/listActuators", (req, res) => {
     res.json(getAllActuators());
 })
 
-app.post('/centralActuators', (req, res) => {
-    console.log('Received update act:', req.body);
+// app.post('/centralActuators', (req, res) => {
+//     console.log('Received update act:', req.body);
 
-    publish_central_updateActuator(req.body.stateDesired);
-    res.json({ success: true, receivedData: req.body });
-});
+//     publish_central_updateActuator(req.body.stateDesired);
+//     res.json({ success: true, receivedData: req.body });
+// });
 
 // API to update actuator status
-app.post("/singleActuator", (req, res) => {
+app.post("/updateActuator", (req, res) => {
     console.log('Received update act:', req.body);
     const id = req.body.id;
     const stateDesired = req.body.stateDesired;

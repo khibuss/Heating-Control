@@ -1,4 +1,5 @@
-const { publish_central_updateActuator } = require("./mqttClient");
+//const { publish_central_updateActuator } = require("./mqttClient");
+const { publish_single_updateActuator } = require("./mqttClient");
 
 const LOWER_THRESHOLD_TEMP = 20; // Temperature upper limit to trigger actuators
 const UPPER_THRESHOLD_TEMP = 40; // Temperature lower limit to trigger actuators
@@ -57,14 +58,16 @@ function checkTemperature(temperature) {
     if (temperature < LOWER_THRESHOLD_TEMP && statusActs != true) {
         console.log(`Temperature under lower threshold (${LOWER_THRESHOLD_TEMP}°C)! Activating actuators...`);
         statusActs = true;
-        publish_central_updateActuator(true);
+        //publish_central_updateActuator(true);
+        ACTUATOR_THINGS.forEach(actuator => publish_single_updateActuator(actuator.id, true))
 
     }
     else {
         if (temperature > UPPER_THRESHOLD_TEMP && statusActs != false) {
             console.log(`🔥 Temperature over upper threshold (${UPPER_THRESHOLD_TEMP}°C)!. Disactivating actuators...`);
             statusActs = false;
-            publish_central_updateActuator(false);
+            //publish_central_updateActuator(false);
+            ACTUATOR_THINGS.forEach(actuator => publish_single_updateActuator(actuator.id, false))
         }
         else {
             //console.log(`No action`);
@@ -72,6 +75,7 @@ function checkTemperature(temperature) {
         }
     }
 }
+
 
 function setConfiguration(newMode, sensorId = null) {
     configuration.mode = newMode;
