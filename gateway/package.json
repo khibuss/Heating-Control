@@ -19,6 +19,6 @@
     "nodemon": "^3.1.9"
   },
   "devDependencies": {
-    "@types/node": "^22.13.4"
+    "@types/node": "^22.13.17"
   }
 }
