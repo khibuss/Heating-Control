@@ -90,25 +90,12 @@ function publish_single_updateActuator(actName, power) {
 
         console.log(`🚀 ${actName} turned ${power ? "ON" : "OFF"}`);
     }
-
-
 }
 
-
-
-
-// Funzione per ottenere i dati
-function getTemperatureData(sensorId) {
-    return temperatureData[sensorId];
-}
-
-function getAllTemperatureData() {
-    return temperatureData;
-}
 
 function getStatusActuators(actId) {
     return statusAct[actId];
 }
 
 // Esportiamo le funzioni
-module.exports = { startMqttClient, getTemperatureData, getStatusActuators, getAllTemperatureData, publish_single_updateActuator };
+module.exports = { startMqttClient, getStatusActuators, publish_single_updateActuator };

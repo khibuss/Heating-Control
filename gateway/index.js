@@ -4,8 +4,8 @@ const dotenv = require('dotenv');
 dotenv.config();
 const app = express()
 
-const { startMqttClient, getTemperatureData, getStatusActuators, publish_single_updateActuator } = require('./mqttClient'); // Importa la connessione MQTT
-const { getLastReading } = require('./dbService');
+const { startMqttClient, getStatusActuators, publish_single_updateActuator } = require('./mqttClient'); // Importa la connessione MQTT
+const { getLastSensorReading, getSensorsId} = require('./dbService');
 const { startHeatingSystem, getAllActuators } = require('./controllerActuator');
 
 app.use(express.json()); // Parse JSON request bodies
@@ -27,25 +27,27 @@ app.get('/', (req, res) => res.send('Index of Heating Control'));
 // Alla route /temperatures/sensor1 darà il valore di sensor1.
 app.get('/temperatures/:idSensor', async (req, res) => {
     try {
-        res.json(await getLastReading(req.params.idSensor));
+        res.json(await getLastSensorReading(req.params.idSensor));
     } catch (error) {
         console.error(error);
         res.status(500).send('Error retrieving data');
     }
 });
 
-app.get('/sensorData/:idSensor', async (req, res) => {
+// Funzione per ottenere i nomi (gli ID) di tutti i sensori.
+// Servirà nel frontend per interrogare il db attraverso gli id.
+app.get('/getSensorsId', async (req, res) => {
     try {
-        res.json(await getTemperatureData(req.params.idSensor));
+        res.json(await getSensorsId());
     } catch (error) {
         console.error(error);
         res.status(500).send('Error retrieving data');
     }
 });
 
-app.get('/statusAct/:idAct', async (req, res) => {
+app.get('/actuators/:idActuator', async (req, res) => {
     try {
-        res.json(await getStatusActuators(req.params.idAct));
+        res.json(await getStatusActuators(req.params.idActuator));
     } catch (error) {
         console.error(error);
         res.status(500).send('Error retrieving data');
@@ -57,12 +59,6 @@ app.get("/listActuators", (req, res) => {
     res.json(getAllActuators());
 })
 
-// app.post('/centralActuators', (req, res) => {
-//     console.log('Received update act:', req.body);
-
-//     publish_central_updateActuator(req.body.stateDesired);
-//     res.json({ success: true, receivedData: req.body });
-// });
 
 // API to update actuator status
 app.post("/updateActuator", (req, res) => {
