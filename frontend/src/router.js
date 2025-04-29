@@ -1,18 +1,18 @@
 import { createRouter, createWebHistory } from "vue-router";
-//IMPORTARE COMPONENT
-import Heating from "./pages/heating.vue";
-import Actuator from "./pages/actuators.vue";
+
+import Home from "./pages/home.vue";
+import Login from "./pages/login.vue";
 
 const routes = [
     {
         path: "/",
-        name: "Index",
-        component: Heating
+        name: "Login",
+        component: Login
     },
     {
-        path: "/acts",
-        name: "Actuators",
-        component: Actuator
+        path: "/home",
+        name: "Home",
+        component: Home
 
     }
 ];

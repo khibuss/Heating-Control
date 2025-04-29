@@ -25,18 +25,20 @@ const togglePump = () => {
 };
 </script>
 
-<style scoped >
+<style scoped>
 .sensor-card {
     border: 1px solid #ccc;
+    background: rgb(237, 250, 253);
     padding: 16px;
     border-radius: 8px;
     box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
     text-align: center;
     margin: 10px;
+
 }
 
 .buttonPump {
-    background-color:#d2d2d2;
+    background-color: #d2d2d2;
     width: 40px;
     height: 24px;
     border-radius: 200px;
@@ -60,13 +62,13 @@ const togglePump = () => {
 }
 
 
-input:checked + .buttonPump {
+input:checked+.buttonPump {
     background-color: green;
-} 
+}
 
-input:checked + .buttonPump::before {
+input:checked+.buttonPump::before {
     transform: translateX(15px);
-} 
+}
 
 input {
     display: none;
