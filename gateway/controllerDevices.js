@@ -1,5 +1,5 @@
-//const { publish_central_updateActuator } = require("./mqttClient");
 const { publish_single_updateActuator } = require("./mqttClient");
+const { getLastSensorReading, getSensorsId } = require("./dbService");
 
 const LOWER_THRESHOLD_TEMP = 20; // Temperature upper limit to trigger actuators
 const UPPER_THRESHOLD_TEMP = 40; // Temperature lower limit to trigger actuators
@@ -14,6 +14,11 @@ let configuration = {
     selectedSensor: "sensor1",
 };
 
+
+async function getAverageTemperatureNew() {
+    const sensorsID = await getSensorsId();
+    console.log(sensorsID);
+}
 // Function to calculate average temperature of all sensors
 function getAverageTemperature() {
     const temperatures = Object.values(sensorData);
@@ -92,5 +97,5 @@ function getAllActuators() {
 
 // Export function to start monitoring
 module.exports = {
-    startHeatingSystem, setConfiguration, getAllActuators
+    startHeatingSystem, setConfiguration, getAllActuators, getAverageTemperature, getAverageTemperatureNew
 };

@@ -42,3 +42,8 @@ const getSensorsId = async () => {
 
 
 module.exports = { getLastSensorReading, getSensorsId };
+// module.exports.closeDB = function() {
+//     if (dynamoDB && dynamoDB.service) {
+//       dynamoDB.service.destroy();
+//     }
+//   };

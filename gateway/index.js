@@ -6,7 +6,7 @@ const app = express()
 
 const { startMqttClient, getStatusActuators, publish_single_updateActuator } = require('./mqttClient'); // Importa la connessione MQTT
 const { getLastSensorReading, getSensorsId} = require('./dbService');
-const { startHeatingSystem, getAllActuators } = require('./controllerActuator');
+const { startHeatingSystem, getAllActuators } = require('./controllerDevices');
 
 app.use(express.json()); // Parse JSON request bodies
 app.use(cors()); // Allow frontend to access backend

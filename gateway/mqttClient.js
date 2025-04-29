@@ -52,29 +52,6 @@ function startMqttClient() {
     });
 }
 
-
-// Function to update the state of all actuators
-// function publish_central_updateActuator(power) {
-//     if (isConnected) {
-//         ACTUATOR_THINGS.forEach(actuator => {
-//             const shadowUpdate = {
-//                 state: {
-//                     desired: {
-//                         status: power ? "ON" : "OFF",
-//                     },
-//                 },
-//             };
-//             connection.publish(`$aws/things/${actuator}/shadow/update`, JSON.stringify(shadowUpdate), awsIot.mqtt.QoS.AtMostOnce);
-//         });
-//         console.log(`🚀 Actuators turned ${power ? "ON" : "OFF"}`);
-//     }
-//     else {
-//         console.log("Disconnected");
-//     }
-
-
-// }
-
 // Function to update the state of a single specified actuator
 function publish_single_updateActuator(actName, power) {
 
@@ -99,3 +76,9 @@ function getStatusActuators(actId) {
 
 // Esportiamo le funzioni
 module.exports = { startMqttClient, getStatusActuators, publish_single_updateActuator };
+
+module.exports.closeConnection = () => {
+    if (connection) {
+      connection.disconnect();
+    }
+  };
