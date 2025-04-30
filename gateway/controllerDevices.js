@@ -1,8 +1,8 @@
 const { publish_single_updateActuator } = require("./mqttClient");
 const { getLastSensorReading, getSensorsId } = require("./dbService");
 
-const LOWER_THRESHOLD_TEMP = 20; // Temperature upper limit to trigger actuators
-const UPPER_THRESHOLD_TEMP = 40; // Temperature lower limit to trigger actuators
+let LOWER_THRESHOLD_TEMP = 20; // Temperature upper limit to trigger actuators
+let UPPER_THRESHOLD_TEMP = 40; // Temperature lower limit to trigger actuators
 
 statusActs = false; //Variabile per lo stato di tutti gli attuatori
 
@@ -27,29 +27,39 @@ async function getAverageTemperature() {
     return average;
 }
 
-// Function to check temperatures at intervals
+// Main function that checks temperatures.
 function startHeatingSystem() {
-
     setInterval(() => {
-        // Gestione configurazione media globale
-        if (configuration.mode === "global") {
-            const avgTemp = getAverageTemperature();
-            if (avgTemp != null) {
-                checkTemperature(avgTemp);
-            } else {
-                console.log("No sensor data available yet.");
-            }
+        switch (configuration.mode) {
+            case "global":
+                handleGlobalMode();
+                break;
+            case "single":
+                handleSingleMode();
+                break;
+            default:
+                console.log('Unknown mode');
+                break;
         }
-        // Gestione configurazione singolo sensore
-        else {
-            temp = 30; //momentanea
-            if (temp != null) {
-                checkTemperature(temp);
-            } else {
-                console.log("No sensor data detected.");
-            }
-        }
-    }, 5000); // Fai il check ogni 5 secondi
+    }, 5000);
+}
+
+function handleGlobalMode() {
+    const avgTemp = getAverageTemperature();
+    if (avgTemp != null) {
+        checkTemperature(avgTemp);
+    } else {
+        console.log("No sensor data available yet.");
+    }
+}
+
+function handleSingleMode() {
+    const temp = 30; // momentaneo
+    if (temp != null) {
+        checkTemperature(temp);
+    } else {
+        console.log("No sensor data detected.");
+    }
 }
 
 function checkTemperature(temperature) {
@@ -80,6 +90,15 @@ function checkTemperature(temperature) {
     }
 }
 
+function setUpperThreshold(threshold) {
+    UPPER_THRESHOLD_TEMP = threshold;
+    console.log(`Upper threshold updated: ${UPPER_THRESHOLD_TEMP}°C`);
+};
+
+function setLowerThreshold(threshold) {
+    LOWER_THRESHOLD_TEMP = threshold;
+    console.log(`Lower threshold updated: ${LOWER_THRESHOLD_TEMP}°C`);
+};
 
 function setConfiguration(newMode, sensorId = null) {
     configuration.mode = newMode;
@@ -96,5 +115,5 @@ function getAllActuators() {
 
 // Export function to start monitoring
 module.exports = {
-    startHeatingSystem, setConfiguration, getAllActuators, getAverageTemperature
+    startHeatingSystem, setConfiguration, getAllActuators, getAverageTemperature, setLowerThreshold, setUpperThreshold
 };
