@@ -50,6 +50,8 @@ function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: 'Segoe UI', sans-serif;
+
 }
 
 .login-card {

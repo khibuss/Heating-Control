@@ -64,12 +64,31 @@ export default {
 
 <template>
   <div class="dashboard-container">
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <h1 class="logo">Heating System</h1>
+      </div>
+      <ul class="nav-links">
+        <li>
+          <router-link to="/home" exact-active-class="active">
+            <span>📊</span> Dashboard
+          </router-link>
+        </li>
+        <li>
+          <router-link to="/control" exact-active-class="active">
+            <span>🛠️</span> Control
+          </router-link>
+        </li>
+      </ul>
+    </nav>
+
     <main class="main-content">
       <header class="top-bar">
         <div class="welcome">Bentornato <span class="user">Admin</span></div>
       </header>
 
-      <h1 class="section-title">Heating System Dashboard</h1>
+      <h1 class="section-title">Dashboard</h1>
 
       <!-- Current Configuration Mode -->
       <section class="card section">
@@ -77,7 +96,7 @@ export default {
         <p>Current Mode: <strong>{{ currentMode === 'global' ? 'Global Control' : 'Individual Control' }}</strong></p>
       </section>
 
-      <!-- Central Control -->
+      <!-- Central Control
       <section class="card section">
         <h2>Central Control</h2>
         <div class="button-group">
@@ -86,7 +105,7 @@ export default {
         </div>
       </section>
 
-      <!-- Individual Actuator Control -->
+       Individual Actuator Control 
       <section class="card section">
         <h2>Individual Control</h2>
         <div v-for="actuator in actuators" :key="actuator.id" class="actuator-row">
@@ -99,7 +118,7 @@ export default {
           </div>
           <div class="response-msg">{{ serverResponseSingles[actuator.id] }}</div>
         </div>
-      </section>
+      </section> -->
 
       <!-- Sensor Cards -->
       <section class="card section">
@@ -129,13 +148,14 @@ body {
 
 .dashboard-container {
   display: flex;
-  justify-content: center;
-  padding: 20px;
+  min-height: 100vh;
+  font-family: 'Segoe UI', sans-serif;
 }
 
 .main-content {
-  width: 100%;
-  max-width: 1200px;
+  flex: 1;
+  padding: 2rem;
+  background-color: #f4f6f8;
 }
 
 .top-bar {
@@ -214,5 +234,57 @@ button:hover {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
+}
+
+.sidebar {
+  width: 220px;
+  background-color: #1f2d3d;
+  color: #ecf0f1;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+
+.sidebar-header .logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.nav-links {
+  list-style: none;
+  padding: 0;
+}
+
+.nav-links li {
+  margin-bottom: 1rem;
+}
+
+.nav-links a {
+  color: #bdc3c7;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.nav-links a span {
+  margin-right: 10px;
+}
+
+.nav-links a:hover {
+  background-color: #34495e;
+  color: #ecf0f1;
+}
+
+.nav-links a.active {
+  background-color: #3498db;
+  color: #fff;
+  font-weight: bold;
 }
 </style>
