@@ -8,20 +8,19 @@ statusActs = false; //Variabile per lo stato di tutti gli attuatori
 
 const ACTUATOR_THINGS = [{ id: "actuator1", status: "true" }, { id: "actuator2", status: "false" }, { id: "actuator3", status: "true" }];
 
-const sensorData = [22, 10] // Valori momentanei da sostituire con quelli reali
 let configuration = {
     mode: "single",
     selectedSensor: "sensor1",
 };
 
 
-async function getAverageTemperatureNew() {
+async function getAverageTemperature() {
     const sensorsID = await getSensorsId();
-    console.log(sensorsID);
-}
-// Function to calculate average temperature of all sensors
-function getAverageTemperature() {
-    const temperatures = Object.values(sensorData);
+    temperatures = [];
+    for (const sensor of sensorsID) {
+        const lastRead = await getLastSensorReading(sensor.id);
+        temperatures.push(parseFloat(lastRead.temperature))
+    }
     if (temperatures.length === 0) return null;
 
     const average = temperatures.reduce((sum, temp) => sum + temp, 0) / temperatures.length;
@@ -38,7 +37,7 @@ function startHeatingSystem() {
             if (avgTemp != null) {
                 checkTemperature(avgTemp);
             } else {
-                console.log("⚠️ No sensor data available yet.");
+                console.log("No sensor data available yet.");
             }
         }
         // Gestione configurazione singolo sensore
@@ -47,10 +46,10 @@ function startHeatingSystem() {
             if (temp != null) {
                 checkTemperature(temp);
             } else {
-                console.log("⚠️ No sensor data detected.");
+                console.log("No sensor data detected.");
             }
         }
-    }, 5000); // Check every 5 seconds
+    }, 5000); // Fai il check ogni 5 secondi
 }
 
 function checkTemperature(temperature) {
@@ -97,5 +96,5 @@ function getAllActuators() {
 
 // Export function to start monitoring
 module.exports = {
-    startHeatingSystem, setConfiguration, getAllActuators, getAverageTemperature, getAverageTemperatureNew
+    startHeatingSystem, setConfiguration, getAllActuators, getAverageTemperature
 };

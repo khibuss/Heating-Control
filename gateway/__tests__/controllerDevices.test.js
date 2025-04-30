@@ -1,10 +1,9 @@
 require('dotenv').config();
 const { getSensorsId } = require('../dbService');
-const { getAverageTemperatureNew } = require('../controllerDevices');
+const { getAverageTemperature } = require('../controllerDevices');
 
 // Configurazione condivisa per i test di integrazione
 describe('Test di integrazione con DynamoDB', () => {
-  // Condiviso tra tutti i test nel describe
 
   describe('Test per getSensorId', () => {
     it('dovrebbe restituire la lista dei sensori da DynamoDB', async () => {
@@ -20,9 +19,8 @@ describe('Test di integrazione con DynamoDB', () => {
 
   describe('Test per getAverageTemperature', () => {
     it('dovrebbe restituire la temperatura media dei sensori', async () => {
-      const avgTemp = await getAverageTemperatureNew();
-      //console.log('Temperatura media:', avgTemp);
-      
+      const avgTemp = await getAverageTemperature();
+      console.log('Temperatura media:', avgTemp);
     }, 10000);
   });
 });
