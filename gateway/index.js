@@ -1,30 +1,48 @@
+/**
+ * @file index.js
+ * @description Entry point del server backend per il sistema di controllo riscaldamento.
+ * Gestisce API REST per sensori, attuatori, soglie di temperatura, e comunicazione MQTT.
+ */
+
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 dotenv.config();
-const app = express()
 
-const { startMqttClient, getStatusActuators, publish_single_updateActuator } = require('./mqttClient'); // Importa la connessione MQTT
-const { getLastSensorReading, getSensorsId} = require('./dbService');
-const { startHeatingSystem, getAllActuators, setLowerThreshold, setUpperThreshold } = require('./controllerDevices');
-
-app.use(express.json()); // Parse JSON request bodies
-app.use(cors()); // Allow frontend to access backend
-
+const app = express();
 const port = 8000;
 
-startMqttClient();
-startHeatingSystem();
+// Importazione dei moduli locali
+const { startMqttClient, getStatusActuators, publish_single_updateActuator } = require('./mqttClient');
+const { getLastSensorReading, getSensorsId, getAllActuators, getActuatorFromId } = require('./dbService');
+const { startHeatingSystem, setLowerThreshold, setUpperThreshold } = require('./controllerDevices');
+const { type } = require('os');
+
+// Middleware globali
+app.use(express.json()); // Analizza i body delle richieste come JSON
+app.use(cors());         // Abilita CORS per richieste cross-origin
+
+// Avvio dei servizi core
+startMqttClient();       // Connessione al broker MQTT
+startHeatingSystem();    // Avvio del sistema di controllo temperatura
+
 
 app.listen(port, () => {
     console.log("🚀 Server running on http://localhost:" + port);
 });
 
-
-
+/**
+ * @route GET /
+ * @description Route di base per testare che il server sia attivo
+ */
 app.get('/', (req, res) => res.send('Index of Heating Control'));
 
-// Alla route /temperatures/sensor1 darà il valore di sensor1.
+/**
+ * @route GET /temperatures/:idSensor
+ * @description Ritorna l'ultima lettura del sensore specificato
+ * @param {string} idSensor - ID del sensore da leggere
+ * @returns {Object} Lettura sensore o errore
+ */
 app.get('/temperatures/:idSensor', async (req, res) => {
     try {
         res.json(await getLastSensorReading(req.params.idSensor));
@@ -34,8 +52,11 @@ app.get('/temperatures/:idSensor', async (req, res) => {
     }
 });
 
-// Funzione per ottenere i nomi (gli ID) di tutti i sensori.
-// Servirà nel frontend per interrogare il db attraverso gli id.
+/**
+ * @route GET /getSensorsId
+ * @description Restituisce la lista degli ID di tutti i sensori registrati
+ * @returns {Array<Object>} Lista dei sensori
+ */
 app.get('/getSensorsId', async (req, res) => {
     try {
         res.json(await getSensorsId());
@@ -45,36 +66,63 @@ app.get('/getSensorsId', async (req, res) => {
     }
 });
 
+/**
+ * @route GET /actuators/:idActuator
+ * @description Ritorna le informazioni di un attuatore specifico
+ * @param {string} idActuator - ID dell'attuatore
+ * @returns {Object} Dati dell'attuatore o errore
+ */
 app.get('/actuators/:idActuator', async (req, res) => {
     try {
-        res.json(await getStatusActuators(req.params.idActuator));
+        res.json(await getActuatorFromId(req.params.idActuator));
     } catch (error) {
         console.error(error);
         res.status(500).send('Error retrieving data');
     }
 });
 
-// API to get the list of actuators
-app.get("/listActuators", (req, res) => {
-    res.json(getAllActuators());
-})
-
-
-// API to update actuator status
-app.post("/updateActuator", (req, res) => {
-    console.log('Received update act:', req.body);
-    const id = req.body.id;
-    const stateDesired = req.body.stateDesired;
-
-    const actuator = getAllActuators().find((a) => a.id === id);
-    if (actuator) {
-        publish_single_updateActuator(id, stateDesired);
-        res.json({ success: true, receivedData: req.body });
-    } else {
-        res.status(404).json({ error: "Actuator not found" });
+/**
+ * @route GET /listActuators
+ * @description Ritorna la lista di tutti gli attuatori registrati
+ * @returns {Array<Object>} Lista degli attuatori
+ */
+app.get("/listActuators", async (req, res) => {
+    try {
+        res.json(await getAllActuators());
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Error retrieving actuators');
     }
 });
 
+/**
+ * @route POST /updateActuator
+ * @description Aggiorna lo stato desiderato di un attuatore (accensione/spegnimento)
+ * @param {string} req.body.id - ID dell'attuatore
+ * @param {boolean} req.body.stateDesired - Stato desiderato (true = ON, false = OFF)
+ * @returns {Object} Stato della richiesta
+ */
+app.post("/updateActuator", async (req, res) => {
+    console.log('Received update act:', req.body);
+    const { id, stateDesired } = req.body;
+
+    if (typeof stateDesired !== 'boolean'){
+        return res.status(400).json({ error: "Actuator desired state must be a boolean"})
+    }
+    try {
+        const actuator = await getActuatorFromId(id);
+
+        if (actuator) {
+            publish_single_updateActuator(id, stateDesired);
+            res.json({ success: true, receivedData: req.body });
+        } else {
+            res.status(404).json({ error: "Actuator not found" });
+        }
+    } catch (error) {
+        console.error("Error updating actuator:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
 
 /**
  * @route POST /thresholds/upper

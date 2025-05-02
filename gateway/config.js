@@ -1,7 +1,7 @@
 module.exports = {
     dynamodb_aws_SensorReadings: process.env.DYNAMODB_TABLE_SENSORREADINGS,
     dynamodb_aws_SensorRegistry: process.env.DYNAMODB_TABLE_SENSORREGISTRY,
-    dynamodb_aws_ActuatorStatus: process.env.DYNAMODB_TABLE_ACTUATOR_STATUS,
+    dynamodb_aws_ActuatorRegistry: process.env.DYNAMODB_TABLE_ACTUATOR_REGISTRY,
     dynamodb_aws_local_config: {
       //Provide details for local configuration here
     },

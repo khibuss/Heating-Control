@@ -53,19 +53,21 @@ function startMqttClient() {
 }
 
 // Function to update the state of a single specified actuator
-function publish_single_updateActuator(actName, power) {
+function publish_single_updateActuator(idActuator, status) {
 
     if (isConnected) {
         const shadowUpdate = {
             state: {
                 desired: {
-                    status: power ? "ON" : "OFF",
+                    status: status ? "ON" : "OFF",
                 },
             },
         };
-        connection.publish(`$aws/things/${actName}/shadow/update`, JSON.stringify(shadowUpdate), awsIot.mqtt.QoS.AtMostOnce);
+        connection.publish(`$aws/things/${idActuator}/shadow/update`, JSON.stringify(shadowUpdate), awsIot.mqtt.QoS.AtMostOnce);
 
-        console.log(`🚀 ${actName} turned ${power ? "ON" : "OFF"}`);
+        console.log(`🚀 ${idActuator} turned ${status ? "ON" : "OFF"}`);
+        
+        // Maybe here we should update actuator status on DYNAMO.
     }
 }
 
@@ -74,7 +76,7 @@ function getStatusActuators(actId) {
     return statusAct[actId];
 }
 
-// Esportiamo le funzioni
+
 module.exports = { startMqttClient, getStatusActuators, publish_single_updateActuator };
 
 module.exports.closeConnection = () => {

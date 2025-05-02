@@ -1,10 +1,25 @@
+/**
+ * @file dbService.js
+ * @description Servizi per l'interazione con DynamoDB (sensori e attuatori).
+ * Fornisce funzioni per ottenere l'ultima lettura di un sensore,
+ * la lista dei sensori registrati e la lista degli attuatori.
+ */
+
 const AWS = require('aws-sdk');
 const config = require('./config');
-// Setting the configurations
+
 AWS.config.update(config.dynamodb_aws_remote_config);
+
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
-// Fetch dell'ultima lettura di ciascun sensore. (risolto ora prende l'ultima)
+/**
+ * Recupera l'ultima lettura di un sensore specifico (ordinamento decrescente per timestamp).
+ *
+ * @async
+ * @function getLastSensorReading
+ * @param {string} sensorId - ID del sensore da interrogare
+ * @returns {Object|null} - Ultima lettura del sensore, oppure null se non trovata
+ */
 const getLastSensorReading = async (sensorId) => {
     const params = {
         TableName: config.dynamodb_aws_SensorReadings,
@@ -12,8 +27,8 @@ const getLastSensorReading = async (sensorId) => {
         ExpressionAttributeValues: {
             ":id": sensorId
         },
-        ScanIndexForward: false,
-        Limit: 1 // Prendi solo il primo risultato
+        ScanIndexForward: false, // Ordina in modo decrescente (timestamp più recente per primo)
+        Limit: 1 // Prende solo l'ultima lettura
     };
 
     try {
@@ -25,25 +40,72 @@ const getLastSensorReading = async (sensorId) => {
     }
 };
 
+/**
+ * Restituisce la lista di tutti gli ID dei sensori registrati nel sistema.
+ *
+ * @async
+ * @function getSensorsId
+ * @returns {Array<Object>|null} - Array di id sensori o null in caso di errore
+ */
 const getSensorsId = async () => {
     const params = {
         TableName: config.dynamodb_aws_SensorRegistry,
-    }
+    };
 
     try {
         const data = await dynamoDB.scan(params).promise();
         return data.Items || null;
-
     } catch (error) {
         console.error('Error fetching sensor names:', error);
         throw error;
     }
 };
 
+/**
+ * Restituisce la lista di tutti gli attuatori registrati nel sistema.
+ *
+ * @async
+ * @function getAllActuators
+ * @returns {Array<Object>|null} - Array di oggetti attuatori o null in caso di errore
+ */
+const getAllActuators = async () => {
+    const params = {
+        TableName: config.dynamodb_aws_ActuatorRegistry,
+    };
 
-module.exports = { getLastSensorReading, getSensorsId };
-// module.exports.closeDB = function() {
-//     if (dynamoDB && dynamoDB.service) {
-//       dynamoDB.service.destroy();
-//     }
-//   };
+    try {
+        const data = await dynamoDB.scan(params).promise();
+        return data.Items || null;
+    } catch (error) {
+        console.error('Error fetching actuator names:', error);
+        throw error;
+    }
+};
+
+/**
+ * Restituisce i dati di un attuatore tramite id
+ *
+ * @async
+ * @function getActuatorFromId
+ * @returns {Object|null} - L'attuatore o null in caso di errore
+ */
+const getActuatorFromId = async (actuatorId) => {
+    const params = {
+        TableName: config.dynamodb_aws_ActuatorRegistry,
+        KeyConditionExpression: "id = :id",
+        ExpressionAttributeValues: {
+            ":id": actuatorId
+        },
+    };
+
+    try {
+        const data = await dynamoDB.query(params).promise();
+        return data.Items[0] || null;
+    } catch (error) {
+        console.error('Error fetching actuator names:', error);
+        throw error;
+    }
+}
+
+// Esportazione delle funzioni per utilizzo esterno
+module.exports = { getLastSensorReading, getSensorsId, getAllActuators, getActuatorFromId };

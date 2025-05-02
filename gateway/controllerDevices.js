@@ -1,15 +1,15 @@
 const { publish_single_updateActuator } = require("./mqttClient");
-const { getLastSensorReading, getSensorsId } = require("./dbService");
+const { getLastSensorReading, getSensorsId, getAllActuators} = require("./dbService");
 
-let LOWER_THRESHOLD_TEMP = 20; // Temperature upper limit to trigger actuators
-let UPPER_THRESHOLD_TEMP = 40; // Temperature lower limit to trigger actuators
+let LOWER_THRESHOLD_TEMP = 20; // Temperature LOWER limit to trigger actuators
+let UPPER_THRESHOLD_TEMP = 40; // Temperature UPPER limit to trigger actuators
 
 statusActs = false; //Variabile per lo stato di tutti gli attuatori
 
 const ACTUATOR_THINGS = [{ id: "actuator1", status: "true" }, { id: "actuator2", status: "false" }, { id: "actuator3", status: "true" }];
 
 let configuration = {
-    mode: "single",
+    mode: "global",
     selectedSensor: "sensor1",
 };
 
@@ -44,8 +44,8 @@ function startHeatingSystem() {
     }, 5000);
 }
 
-function handleGlobalMode() {
-    const avgTemp = getAverageTemperature();
+async function handleGlobalMode() {
+    const avgTemp = await getAverageTemperature();
     if (avgTemp != null) {
         checkTemperature(avgTemp);
     } else {
@@ -62,33 +62,33 @@ function handleSingleMode() {
     }
 }
 
-function checkTemperature(temperature) {
+async function checkTemperature(temperature) {
+    console.log(`📊 Temperature compared: ${temperature}°C`);
 
-    console.log(`📊 Temperature compared: ${temperature.toFixed(2)}°C`);
-
-    // Controlla la temperatura passata come parametro e la confronta con le soglie; se questa è al di sotto del lower threshold
-    // e gli attuatori sono spenti, allora viene mandata la richiesta per accenderli; se questa è al di sopra dell'upper threshold 
-    // e gli attuatori sono accesi, allora viene mandata la richiesta per spegnerli; 
-    if (temperature < LOWER_THRESHOLD_TEMP && statusActs != true) {
+    if (temperature < LOWER_THRESHOLD_TEMP && statusActs !== true) {
         console.log(`Temperature under lower threshold (${LOWER_THRESHOLD_TEMP}°C)! Activating actuators...`);
         statusActs = true;
-        //publish_central_updateActuator(true);
-        ACTUATOR_THINGS.forEach(actuator => publish_single_updateActuator(actuator.id, true))
 
-    }
-    else {
-        if (temperature > UPPER_THRESHOLD_TEMP && statusActs != false) {
-            console.log(`🔥 Temperature over upper threshold (${UPPER_THRESHOLD_TEMP}°C)!. Disactivating actuators...`);
-            statusActs = false;
-            //publish_central_updateActuator(false);
-            ACTUATOR_THINGS.forEach(actuator => publish_single_updateActuator(actuator.id, false))
+        try {
+            const allActuators = await getAllActuators(); // wait for data
+            allActuators.forEach(actuator =>
+                publish_single_updateActuator(actuator.id, true)
+            );
+        } catch (error) {
+            console.error("Failed to activate actuators:", error);
         }
-        else {
-            //console.log(`No action`);
 
-        }
+    } else if (temperature > UPPER_THRESHOLD_TEMP && statusActs !== false) {
+        console.log(`🔥 Temperature over upper threshold (${UPPER_THRESHOLD_TEMP}°C)! Disactivating actuators...`);
+        statusActs = false;
+        
+        const allActuators = await getAllActuators(); // wait for data
+        allActuators.forEach(actuator =>
+            publish_single_updateActuator(actuator.id, false)
+        );
     }
 }
+
 
 function setUpperThreshold(threshold) {
     UPPER_THRESHOLD_TEMP = threshold;
@@ -107,13 +107,9 @@ function setConfiguration(newMode, sensorId = null) {
     console.log(`Mode set to: ${mode}, Selected sensor: ${selectedSensor}`);
 }
 
-function getAllActuators() {
-    return ACTUATOR_THINGS;
-}
-
 
 
 // Export function to start monitoring
 module.exports = {
-    startHeatingSystem, setConfiguration, getAllActuators, getAverageTemperature, setLowerThreshold, setUpperThreshold
+    startHeatingSystem, setConfiguration, getAverageTemperature, setLowerThreshold, setUpperThreshold, checkTemperature
 };
