@@ -13,7 +13,7 @@ const app = express();
 const port = 8000;
 
 // Importazione dei moduli locali
-const { startMqttClient, getStatusActuators, publish_single_updateActuator } = require('./mqttClient');
+const { startMqttClient, publish_single_updateActuator } = require('./mqttClient');
 const { getLastSensorReading, getSensorsId, getAllActuators, getActuatorFromId } = require('./dbService');
 const { startHeatingSystem, setLowerThreshold, setUpperThreshold } = require('./controllerDevices');
 const { type } = require('os');

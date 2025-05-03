@@ -6,8 +6,6 @@ let UPPER_THRESHOLD_TEMP = 40; // Temperature UPPER limit to trigger actuators
 
 statusActs = false; //Variabile per lo stato di tutti gli attuatori
 
-const ACTUATOR_THINGS = [{ id: "actuator1", status: "true" }, { id: "actuator2", status: "false" }, { id: "actuator3", status: "true" }];
-
 let configuration = {
     mode: "global",
     selectedSensor: "sensor1",

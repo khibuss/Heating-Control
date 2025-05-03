@@ -1,6 +1,5 @@
 // Questo per file per ora è inutilizzato ma servirà forse più avanti
 const awsIot = require('aws-iot-device-sdk-v2');
-const ACTUATOR_THINGS = ["actuator1", "actuator2"];
 
 const mqttClient = new awsIot.mqtt.MqttClient();
 const builder = awsIot.iot.AwsIotMqttConnectionConfigBuilder.new_mtls_builder_from_path(
@@ -71,13 +70,7 @@ function publish_single_updateActuator(idActuator, status) {
     }
 }
 
-
-function getStatusActuators(actId) {
-    return statusAct[actId];
-}
-
-
-module.exports = { startMqttClient, getStatusActuators, publish_single_updateActuator };
+module.exports = { startMqttClient, publish_single_updateActuator };
 
 module.exports.closeConnection = () => {
     if (connection) {
