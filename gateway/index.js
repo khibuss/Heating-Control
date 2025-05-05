@@ -15,8 +15,8 @@ const port = 8000;
 // Importazione dei moduli locali
 const { startMqttClient, publish_single_updateActuator } = require('./mqttClient');
 const { getLastSensorReading, getSensorsId, getAllActuators, getActuatorFromId } = require('./dbService');
-const { startHeatingSystem, setLowerThreshold, setUpperThreshold } = require('./controllerDevices');
-const { type } = require('os');
+const { startHeatingSystem } = require('./controllerDevices');
+const { setLowerThreshold, setUpperThreshold } = require("./thresholdService"); 
 
 // Middleware globali
 app.use(express.json()); // Analizza i body delle richieste come JSON

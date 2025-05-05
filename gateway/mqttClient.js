@@ -65,8 +65,6 @@ function publish_single_updateActuator(idActuator, status) {
         connection.publish(`$aws/things/${idActuator}/shadow/update`, JSON.stringify(shadowUpdate), awsIot.mqtt.QoS.AtMostOnce);
 
         console.log(`🚀 ${idActuator} turned ${status ? "ON" : "OFF"}`);
-        
-        // Maybe here we should update actuator status on DYNAMO.
     }
 }
 

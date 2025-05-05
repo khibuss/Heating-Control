@@ -1,8 +1,11 @@
 const { publish_single_updateActuator } = require("./mqttClient");
 const { getLastSensorReading, getSensorsId, getAllActuators} = require("./dbService");
-
-let LOWER_THRESHOLD_TEMP = 20; // Temperature LOWER limit to trigger actuators
-let UPPER_THRESHOLD_TEMP = 40; // Temperature UPPER limit to trigger actuators
+const {
+    getLowerThreshold,
+    getUpperThreshold,
+    setLowerThreshold,
+    setUpperThreshold
+} = require('./thresholdService');
 
 statusActs = false; //Variabile per lo stato di tutti gli attuatori
 
@@ -61,10 +64,13 @@ function handleSingleMode() {
 }
 
 async function checkTemperature(temperature) {
+    const lower = getLowerThreshold();
+    const upper = getUpperThreshold();
+
     console.log(`📊 Temperature compared: ${temperature}°C`);
 
-    if (temperature < LOWER_THRESHOLD_TEMP && statusActs !== true) {
-        console.log(`Temperature under lower threshold (${LOWER_THRESHOLD_TEMP}°C)! Activating actuators...`);
+    if (temperature < lower && statusActs !== true) {
+        console.log(`Temperature under lower threshold (${lower}°C)! Activating actuators...`);
         statusActs = true;
 
         try {
@@ -76,8 +82,8 @@ async function checkTemperature(temperature) {
             console.error("Failed to activate actuators:", error);
         }
 
-    } else if (temperature > UPPER_THRESHOLD_TEMP && statusActs !== false) {
-        console.log(`🔥 Temperature over upper threshold (${UPPER_THRESHOLD_TEMP}°C)! Disactivating actuators...`);
+    } else if (temperature > upper && statusActs !== false) {
+        console.log(`🔥 Temperature over upper threshold (${upper}°C)! Disactivating actuators...`);
         statusActs = false;
         
         const allActuators = await getAllActuators(); // wait for data
@@ -86,17 +92,6 @@ async function checkTemperature(temperature) {
         );
     }
 }
-
-
-function setUpperThreshold(threshold) {
-    UPPER_THRESHOLD_TEMP = threshold;
-    console.log(`Upper threshold updated: ${UPPER_THRESHOLD_TEMP}°C`);
-};
-
-function setLowerThreshold(threshold) {
-    LOWER_THRESHOLD_TEMP = threshold;
-    console.log(`Lower threshold updated: ${LOWER_THRESHOLD_TEMP}°C`);
-};
 
 function setConfiguration(newMode, sensorId = null) {
     configuration.mode = newMode;
@@ -109,5 +104,5 @@ function setConfiguration(newMode, sensorId = null) {
 
 // Export function to start monitoring
 module.exports = {
-    startHeatingSystem, setConfiguration, getAverageTemperature, setLowerThreshold, setUpperThreshold, checkTemperature
+    startHeatingSystem, setConfiguration, getAverageTemperature, checkTemperature
 };
