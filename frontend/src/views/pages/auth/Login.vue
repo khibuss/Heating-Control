@@ -1,10 +1,38 @@
 <script setup>
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
 import { ref } from 'vue';
+import { useRouter } from "vue-router";
+import api from '@/utils/api';
 
+
+const router = useRouter();
 const username = ref('');
 const password = ref('');
 const checked = ref(false);
+const error = ref();  // Here we print errors and eventually show.
+
+const handleLogin = async () => {
+  try {
+    const response = await api.post('/login', {
+      username: username.value,
+      password: password.value
+    });
+
+    const token = response.data.token;
+
+    if (!token) {
+      throw new Error('Token mancante nella risposta del server');
+    }
+
+    localStorage.setItem('admin_token', token);
+
+    router.push('/');
+  } catch (err) {
+    console.error('Errore login:', err.message);
+    error.value = err.response?.data?.message || err.message || 'Errore sconosciuto';
+  }
+};
+
 </script>
 
 <template>
@@ -57,7 +85,8 @@ const checked = ref(false);
                             <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Forgot
                                 password?</span>
                         </div>
-                        <Button label="Sign In" class="w-full" as="router-link" to="/"></Button>
+                        <!-- <Button label="Sign In" class="w-full" as="router-link" to="/"></Button> -->
+                        <Button label="Sign In" class="w-full" @click="handleLogin"></Button>
                     </div>
                 </div>
             </div>

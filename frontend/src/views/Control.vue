@@ -1,5 +1,6 @@
 <script>
 import SensorCard from '@/components/dashboard/SensorCard.vue';
+import api from '@/utils/api';
 
 export default {
     components: {
@@ -25,41 +26,41 @@ export default {
         this.getActuators();
     },
     methods: {
+        // Usa l'API per ottenere gli attuatori
         async getActuators() {
             try {
-                const response = await fetch('http://localhost:8000/listActuators');
-                const data = await response.json();
-                this.actuators = data;
+                const response = await api.get('/listActuators');
+                this.actuators = response.data;
             } catch (error) {
                 console.error('Error fetching data:', error);
             }
         },
+
+        // Usa l'API per aggiornare uno specifico attuatore
         async setSingleActuator(id, stateDesired) {
             try {
-                const response = await fetch('http://localhost:8000/updateActuator', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ id, stateDesired })
+                const response = await api.post('/updateActuator', {
+                    id, 
+                    stateDesired
                 });
 
-                const data = await response.json();
-                this.serverResponseSingles[id] = data.receivedData.stateDesired ? 'Turned ON' : 'Turned OFF';
+                this.serverResponseSingles[id] = response.data.receivedData.stateDesired ? 'Turned ON' : 'Turned OFF';
                 this.currentMode = 'individual';
             } catch (error) {
                 console.error('Error sending data:', error);
             }
         },
+
         async setAllActuators(stateDesired) {
             for (const actuator of this.actuators) {
                 await this.setSingleActuator(actuator.id, stateDesired);
             }
             this.currentMode = 'global';
-        }
+        },
     }
 };
 </script>
+
 
 <template>
     <div class="dashboard-container">

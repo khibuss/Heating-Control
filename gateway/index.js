@@ -5,6 +5,8 @@
  */
 
 const express = require('express');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const dotenv = require('dotenv');
 dotenv.config();
@@ -17,6 +19,7 @@ const { startMqttClient, publish_single_updateActuator } = require('./mqttClient
 const { getLastSensorReading, getSensorsId, getAllActuators, getActuatorFromId } = require('./dbService');
 const { startHeatingSystem } = require('./controllerDevices');
 const { setLowerThreshold, setUpperThreshold } = require("./thresholdService"); 
+const { authenticateToken } = require('./middleware/authentication'); // Import del middleware
 
 // Middleware globali
 app.use(express.json()); // Analizza i body delle richieste come JSON
@@ -31,12 +34,68 @@ app.listen(port, () => {
     console.log("🚀 Server running on http://localhost:" + port);
 });
 
+app.use((req, res, next) => {
+    if (req.path === '/login' || req.path === '/api/validate-token') {
+        return next(); // lascia passare il login e la validazione
+    }
+    authenticateToken(req, res, next); // protegge tutto il resto
+});
+
 /**
  * @route GET /
  * @description Route di base per testare che il server sia attivo
  */
 app.get('/', (req, res) => res.send('Index of Heating Control'));
 
+/**
+ * @route POST /login
+ * @description Fornisce il JWT in seguito ad autenticazione
+ * @param {string} req.body.username - Username inserito
+ * @param {string} req.body.password - Password inserita
+ * @returns {Object} JSON con JWT firmato
+ * @returns {Error} 401 - Invalid Credentials
+ */
+app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+
+    if (username !== process.env.ADMIN_USER) {
+        return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const match = await bcrypt.compare(password, process.env.ADMIN_PASS_HASH);
+    if (!match) {
+        return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const token = jwt.sign({ user: username }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.json({"token": token });
+});
+
+// Endpoint per la validazione del token
+app.get('/api/validate-token', (req, res) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Estrae il token da "Bearer <token>"
+
+    if (!token) {
+        return res.status(401).json({ valid: false, message: 'Token mancante' });
+    }
+
+    try {
+        // Verifica il token usando il tuo JWT_SECRET
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        console.error("decoded: ", decoded);
+        // Controllo aggiuntivo: verifica che il token appartenga all'admin (opzionale)
+        if (decoded.user !== process.env.ADMIN_USER) {
+            throw new Error('Utente non autorizzato');
+        }
+
+        // Token valido
+        res.status(200).json({ valid: true, user: decoded.user });
+    } catch (error) {
+        // Token scaduto o invalido
+        res.status(401).json({ valid: false, message: 'Token non valido' });
+    }
+});
 /**
  * @route GET /temperatures/:idSensor
  * @description Ritorna l'ultima lettura del sensore specificato
