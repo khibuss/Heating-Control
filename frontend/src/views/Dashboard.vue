@@ -71,7 +71,7 @@ export default {
 <template>
   <div class="flex flex-col">
     <div class="card">
-      <div class="font-semibold text-xl">Sensors Data</div>
+      <div class="text-2xl font-semibold text-slate-800 mb-10">Sensors Data</div>
       <div class="grid grid-cols-12 gap-8 mt-6">
         <SensorCard v-for="sensor in sensors" :key="sensor.name" :name="sensor.name" :temperature="sensor.temperature"
           :humidity="sensor.humidity" />

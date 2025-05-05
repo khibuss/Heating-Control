@@ -51,6 +51,12 @@ const router = createRouter({
                     name: 'control',
                     component: () => import('@/views/Control.vue'),
                     meta: { requiresAuth: true }
+                },
+                {
+                    path: '/config',
+                    name: 'configuration',
+                    component: () => import('@/views/Config.vue'),
+                    meta: { requiresAuth: true }
                 }
             ]
         },
@@ -89,11 +95,10 @@ async function validateToken(token) {
     console.log(token);
     try {
         const response = await fetch('http://localhost:8000/api/validate-token', {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` }
         });
         if (response.ok) return true;
         else return false;
-
     } catch (error) {
         return false;
     }
@@ -117,10 +122,10 @@ router.beforeEach(async (to, from, next) => {
     // Verifica la validità del token con il backend
     const isValid = await validateToken(token);
     //console.log(isValid);
-    
+
     if (isValid) {
         // Token valido - procedi
-        
+
         next();
     } else {
         // Token non valido - cancella il token e reindirizza
