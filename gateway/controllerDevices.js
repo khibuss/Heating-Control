@@ -6,17 +6,16 @@ const {
     setLowerThreshold,
     setUpperThreshold
 } = require('./thresholdService');
+const {loadConfiguration, saveConfiguration} = require("./configurationService");
 
 statusActs = false; //Variabile per lo stato di tutti gli attuatori
 
-let configuration = {
-    mode: "global",
-    selectedSensor: "sensor1",
-};
+let configuration = loadConfiguration();
 
 
 async function getAverageTemperature() {
     const sensorsID = await getSensorsId();
+    console.log(sensorsID);
     temperatures = [];
     for (const sensor of sensorsID) {
         const lastRead = await getLastSensorReading(sensor.id);
@@ -29,20 +28,27 @@ async function getAverageTemperature() {
 }
 
 // Main function that checks temperatures.
-function startHeatingSystem() {
-    setInterval(() => {
-        switch (configuration.mode) {
-            case "global":
-                handleGlobalMode();
-                break;
-            case "single":
-                handleSingleMode();
-                break;
-            default:
-                console.log('Unknown mode');
-                break;
+async function startHeatingSystem() {
+    while (true) {
+        try {
+            switch (configuration.mode) {
+                case "global":
+                    await handleGlobalMode();
+                    break;
+                case "single":
+                    await handleSingleMode();
+                    break;
+                default:
+                    console.log('Unknown mode');
+                    break;
+            }
+        } catch (err) {
+            console.error("Errore nel ciclo del riscaldamento:", err);
         }
-    }, 5000);
+
+        // Attendi 5 secondi prima del prossimo ciclo
+        await new Promise(resolve => setTimeout(resolve, 5000));
+    }
 }
 
 async function handleGlobalMode() {
@@ -54,7 +60,7 @@ async function handleGlobalMode() {
     }
 }
 
-function handleSingleMode() {
+async function handleSingleMode() {
     const temp = 30; // momentaneo
     if (temp != null) {
         checkTemperature(temp);
