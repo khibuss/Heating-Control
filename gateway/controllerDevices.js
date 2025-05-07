@@ -1,5 +1,5 @@
 const { publish_single_updateActuator } = require("./mqttClient");
-const { getLastSensorReading, getSensorsId, getAllActuators} = require("./dbService");
+const { getLastFiveSensorReadings, getSensorsId, getAllActuators} = require("./dbService");
 const {
     getLowerThreshold,
     getUpperThreshold,
@@ -7,24 +7,32 @@ const {
     setUpperThreshold
 } = require('./thresholdService');
 const {loadConfiguration, saveConfiguration} = require("./configurationService");
+const { getLastSensorReadingAveraged } = require('./utils')
 
 statusActs = false; //Variabile per lo stato di tutti gli attuatori
 
-let configuration = loadConfiguration();
+let configuration = loadConfiguration(); // Probabilmente da caricare in startHeatingSystem
 
 
 async function getAverageTemperature() {
     const sensorsID = await getSensorsId();
+
     console.log(sensorsID);
+
     temperatures = [];
     for (const sensor of sensorsID) {
-        const lastRead = await getLastSensorReading(sensor.id);
+        const lastRead = await getLastSensorReadingAveraged(sensor.id);
+        
+        if (!lastRead) {
+            console.log(`⚠️ Nessuna lettura trovata per il sensore ${sensor.id}, dati non trovati nel DB oppure timestamp troppo vecchio`);
+            continue; // Salta al prossimo sensore
+        }
         temperatures.push(parseFloat(lastRead.temperature))
     }
     if (temperatures.length === 0) return null;
 
     const average = temperatures.reduce((sum, temp) => sum + temp, 0) / temperatures.length;
-    return average;
+    return average.toFixed(2);
 }
 
 // Main function that checks temperatures.

@@ -18,10 +18,20 @@ PATH_TO_ROOT = "../gateway/certificates/root_CA1.pem"
 
 PUBLISH_DELAY = 1.2  # in secondi
 
+# ==== Mappa sensori → stanze ====
+sensors = {
+    "sensor1": "Bagno",
+    "sensor2": "Cucina",
+    "sensor3": "Salotto",
+    "sensor4": "Camera",
+    "sensor5": "Stanzino",
+    "sensor6": "Seminterrato"
+}
+
 # ==== Selezione interattiva dei sensori ====
 selected_sensors = questionary.checkbox(
     "🔘 Seleziona i sensori su cui vuoi pubblicare:",
-    choices=["sensor1", "sensor2", "sensor3", "sensor4", "sensor5", "sensor6"]
+    choices=list(sensors.keys())
 ).ask()
 
 if not selected_sensors:
@@ -55,7 +65,7 @@ for i in range(NUM_MESSAGES):
                 "reported": {
                     "temperature": random.randint(-20, 40),
                     "humidity": random.randint(0, 100),
-                    "status": "on"
+                    "location": sensors.get(sensor, "Sconosciuto")
                 }
             }
         }

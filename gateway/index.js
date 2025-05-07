@@ -16,10 +16,11 @@ const port = 8000;
 
 // Importazione dei moduli locali
 const { startMqttClient, publish_single_updateActuator } = require('./mqttClient');
-const { getLastSensorReading, getSensorsId, getAllActuators, getActuatorFromId } = require('./dbService');
+const { getLastFiveSensorReadings, getSensorsId, getAllActuators, getActuatorFromId } = require('./dbService');
 const { startHeatingSystem } = require('./controllerDevices');
 const { setLowerThreshold, setUpperThreshold } = require("./thresholdService"); 
 const { authenticateToken } = require('./middleware/authentication'); // Import del middleware
+const { checkValidTimestamp, calculateAverages, getLastSensorReadingAveraged } = require('./utils')
 
 // Middleware globali
 app.use(express.json()); // Analizza i body delle richieste come JSON
@@ -34,12 +35,12 @@ app.listen(port, () => {
     console.log("🚀 Server running on http://localhost:" + port);
 });
 
-app.use((req, res, next) => {
-    if (req.path === '/login' || req.path === '/api/validate-token') {
-        return next(); // lascia passare il login e la validazione
-    }
-    authenticateToken(req, res, next); // protegge tutto il resto
-});
+// app.use((req, res, next) => {
+//     if (req.path === '/login' || req.path === '/api/validate-token') {
+//         return next(); // lascia passare il login e la validazione
+//     }
+//     authenticateToken(req, res, next); // protegge tutto il resto
+// });
 
 /**
  * @route GET /
@@ -104,12 +105,27 @@ app.get('/api/validate-token', (req, res) => {
  */
 app.get('/temperatures/:idSensor', async (req, res) => {
     try {
-        res.json(await getLastSensorReading(req.params.idSensor));
+        const lastReadingAveraged = await getLastSensorReadingAveraged(req.params.idSensor);
+
+        if (!lastReadingAveraged) {
+            return res.json({
+                id: req.params.idSensor,
+                disconnected: true,
+                message: "Sensore disconnesso"
+            });
+        }
+
+        res.json({
+            ...lastReadingAveraged,
+            disconnected: false
+        });
+
     } catch (error) {
         console.error(error);
-        res.status(500).send('Error retrieving data');
+        res.status(500).send('Errore nel recupero dei dati');
     }
 });
+
 
 /**
  * @route GET /getSensorsId
