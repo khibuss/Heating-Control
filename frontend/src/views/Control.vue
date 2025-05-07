@@ -1,6 +1,4 @@
-<script>
-import SensorCard from '@/components/dashboard/SensorCard.vue';
-import api from '@/utils/api';
+<script setup>
 import { ref } from 'vue';
 
 const actuators = ref([
@@ -25,94 +23,7 @@ const confirmToggleAll = () => {
     showModal.value = false
 }
 
-export default {
-    components: {
-        SensorCard
-    },
-    data() {
-        return {
-            serverResponseCentral: '',
-            serverResponseSingles: [],
-            actuators: [],
-            currentMode: 'individual', // NEW: active configuration display
-            sensors: [
-                { name: 'Salotto', temperature: 22, humidity: 55 },
-                { name: 'Camera', temperature: 20, humidity: 50 },
-                { name: 'Cucina', temperature: 24, humidity: 60 },
-                { name: 'Bagno', temperature: 27, humidity: 80 },
-                { name: 'Stanzino', temperature: 16, humidity: 82 },
-                { name: 'Seminterrato', temperature: 10, humidity: 69 }
-            ]
-        };
-    },
-    async mounted() {
-        this.getActuators();
-    },
-    methods: {
-        async getActuators() {
-            try {
-                const response = await api.get('/listActuators');
-                this.actuators = response.data;
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            }
-        },
-        // Usa l'API per aggiornare uno specifico attuatore
-        async setSingleActuator(id, stateDesired) {
-            try {
-                const response = await api.post('/updateActuator', {
-                    id, 
-                    stateDesired
-                });
-
-                this.serverResponseSingles[id] = response.data.receivedData.stateDesired ? 'Turned ON' : 'Turned OFF';
-                this.currentMode = 'individual';
-            } catch (error) {
-                console.error('Error sending data:', error);
-            }
-        },
-        async setAllActuators(stateDesired) {
-            for (const actuator of this.actuators) {
-                await this.setSingleActuator(actuator.id, stateDesired);
-            }
-            this.currentMode = 'global';
-        }
-    }
-};
 </script>
-
-
-<!--
-<template>
-    <div class="dashboard-container">
-        <main class="main-content">
-
-            <section class="card section">
-                <h2>Central Control</h2>
-                <div class="button-group">
-                    <button @click="setAllActuators(true)">Activate All</button>
-                    <button @click="setAllActuators(false)">Deactivate All</button>
-                </div>
-            </section>
-
-
-            <section class="card section">
-                <h2>Individual Control</h2>
-                <div v-for="actuator in actuators" :key="actuator.id" class="actuator-row">
-                    <div class="actuator-info">
-                        <span>{{ actuator.id }} (Status: {{ actuator.status ? 'ON' : 'OFF' }})</span>
-                    </div>
-                    <div class="button-group">
-                        <button @click="setSingleActuator(actuator.id, true)">Activate</button>
-                        <button @click="setSingleActuator(actuator.id, false)">Deactivate</button>
-                    </div>
-                    <div class="response-msg">{{ serverResponseSingles[actuator.id] }}</div>
-                </div>
-            </section>
-        </main>
-    </div>
-</template>
--->
 
 <template>
     <div class="card space-y-6">
@@ -187,4 +98,3 @@ export default {
         </div>
     </div>
 </template>
-

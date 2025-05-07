@@ -43,20 +43,20 @@ const router = createRouter({
                 {
                     path: '/',
                     name: 'dashboard',
-                    component: () => import('@/views/Dashboard.vue'),
-                    meta: { requiresAuth: true }
+                    component: () => import('@/views/Dashboard.vue')
+                    //meta: { requiresAuth: true }
                 },
                 {
                     path: '/control',
                     name: 'control',
-                    component: () => import('@/views/Control.vue'),
-                    meta: { requiresAuth: true }
+                    component: () => import('@/views/Control.vue')
+                    //meta: { requiresAuth: true }
                 },
                 {
                     path: '/config',
                     name: 'configuration',
-                    component: () => import('@/views/Config.vue'),
-                    meta: { requiresAuth: true }
+                    component: () => import('@/views/Config.vue')
+                    //meta: { requiresAuth: true }
                 }
             ]
         },
@@ -74,8 +74,8 @@ const router = createRouter({
         {
             path: '/auth/login',
             name: 'login',
-            component: () => import('@/views/pages/auth/Login.vue'),
-            meta: { requiresAuth: false } // Esplicito che non richiede auth
+            component: () => import('@/views/pages/auth/Login.vue')
+            //meta: { requiresAuth: false } // Esplicito che non richiede auth
         },
         {
             path: '/auth/access',
