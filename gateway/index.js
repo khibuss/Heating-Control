@@ -17,7 +17,7 @@ const port = 8000;
 // Importazione dei moduli locali
 const { startMqttClient, publish_single_updateActuator } = require('./mqttClient');
 const { getLastFiveSensorReadings, getSensorsId, getAllActuators, getActuatorFromId } = require('./dbService');
-const { startHeatingSystem } = require('./controllerDevices');
+const { startHeatingSystem, markConfigurationDirty } = require('./controllerDevices');
 const { setLowerThreshold, setUpperThreshold } = require("./thresholdService"); 
 const { authenticateToken } = require('./middleware/authentication'); // Import del middleware
 const { checkValidTimestamp, calculateAverages, getLastSensorReadingAveraged } = require('./utils')
@@ -231,6 +231,36 @@ app.post("/thresholds/lower", (req, res) => {
 
     setLowerThreshold(lowerThreshold);
     res.status(200).json({message: "Lower threshold updated", lowerThreshold});
+});
+
+/**
+ * @route POST /configuration
+ * @description Aggiorna la configurazione del sistema (modalità e sensore selezionato)
+ * @param {string} req.body.mode - Modalità di funzionamento ("global" o "single")
+ * @param {string} [req.body.selectedSensor] - ID del sensore (obbligatorio se mode è "single")
+ * @returns {Object} 200 - Configurazione aggiornata correttamente
+ * @returns {Error} 400 - Input non valido
+ */
+app.post("/configuration", (req, res) => {
+    const { mode, selectedSensor } = req.body;
+
+    if (mode !== "global" && mode !== "single") {
+        return res.status(400).json({ error: "Invalid mode. Must be 'global' or 'single'." });
+    }
+
+    if (mode === "single" && (!selectedSensor || typeof selectedSensor !== 'string')) {
+        return res.status(400).json({ error: "selectedSensor is required in 'single' mode." });
+    }
+
+    const newConfig = {
+        mode,
+        selectedSensor: mode === "single" ? selectedSensor : ""
+    };
+
+    saveConfiguration(newConfig);
+    markConfigurationDirty(); // forza il reload nel ciclo di controllo
+
+    res.status(200).json({ message: "Configuration updated", configuration: newConfig });
 });
 
 app.use((req, res, next) => {
