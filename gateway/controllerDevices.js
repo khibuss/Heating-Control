@@ -14,6 +14,8 @@ const {
 } = require('./thresholdService');
 const { loadConfiguration, saveConfiguration } = require("./configurationService");
 const { getLastSensorReadingAveraged } = require('./utils');
+const Notifier = require('./telegramService');
+
 
 let statusActs = false; // Stato corrente degli attuatori
 let configuration = loadConfiguration(); // Caricamento configurazione
@@ -133,17 +135,30 @@ async function checkTemperature(temperature) {
             allActuators.forEach(actuator =>
                 publish_single_updateActuator(actuator.id, true)
             );
+
         } catch (error) {
             console.error("Failed to activate actuators:", error);
         }
-
+        Notifier.notify(
+          'Heat Pumps Activated 🔥',
+          `⚡ Temperature (${temperature}°C) is below the lower threshold (${lower}°C).`
+        );
     } else if (temperature > upper && statusActs) {
         console.log(`🔥 Temperature over upper threshold (${upper}°C)! Disactivating actuators...`);
         statusActs = false;
         
-        const allActuators = await getAllActuators();
-        allActuators.forEach(actuator =>
-            publish_single_updateActuator(actuator.id, false)
+        try {
+            const allActuators = await getAllActuators();
+            allActuators.forEach(actuator =>
+                publish_single_updateActuator(actuator.id, false)
+            );
+
+        } catch (error) {
+            console.error("Failed to deactivate actuators:", error);
+        }
+        Notifier.notify(
+          'Heat Pumps Deactivated ❄️',
+          `⚡ Temperature (${temperature}°C) is above the upper threshold (${upper}°C).`
         );
     }
 }

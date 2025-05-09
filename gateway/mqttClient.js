@@ -1,6 +1,5 @@
 // Questo per file per ora è inutilizzato ma servirà forse più avanti
 const awsIot = require('aws-iot-device-sdk-v2');
-
 const mqttClient = new awsIot.mqtt.MqttClient();
 const builder = awsIot.iot.AwsIotMqttConnectionConfigBuilder.new_mtls_builder_from_path(
     "certificates/device-certificate.pem.crt",
@@ -63,7 +62,6 @@ function publish_single_updateActuator(idActuator, status) {
             },
         };
         connection.publish(`$aws/things/${idActuator}/shadow/update`, JSON.stringify(shadowUpdate), awsIot.mqtt.QoS.AtMostOnce);
-
         console.log(`🚀 ${idActuator} turned ${status ? "ON" : "OFF"}`);
     }
 }

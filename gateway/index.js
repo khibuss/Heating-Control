@@ -4,6 +4,7 @@
  * Gestisce API REST per sensori, attuatori, soglie di temperatura, e comunicazione MQTT.
  */
 
+const Notifier = require('./telegramService');
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -189,6 +190,11 @@ app.post("/updateActuator", async (req, res) => {
 
         if (actuator) {
             publish_single_updateActuator(id, stateDesired);
+            Notifier.notify(
+                '⚡ Manual Control',
+                `Heat pump in ${actuator.location} has been manually ${stateDesired ? "activated 🔥" : "deactivated ❄️"}.`
+            );
+
             res.json({ success: true, receivedData: req.body });
         } else {
             res.status(404).json({ error: "Actuator not found" });
