@@ -27,7 +27,6 @@ const confirmToggleAll = () => {
 
 <template>
     <div class="card space-y-6">
-        <!-- Header and Global Toggle -->
         <div class="flex items-center justify-between">
             <h1 class="text-2xl font-semibold text-slate-800">Controllo Attuatori</h1>
             <button @click="showModal = true"
@@ -36,18 +35,15 @@ const confirmToggleAll = () => {
             </button>
         </div>
 
-        <!-- Actuators Grid -->
         <div class="grid grid-cols-12 gap-6">
             <div v-for="actuator in actuators" :key="actuator.id" :class="[
                 'col-span-12 md:col-span-6 xl:col-span-3 transition-all duration-300',
                 'rounded-xl p-6 shadow bg-white hover:scale-[1.02] ',
                 actuator.isOn ? 'border-2 border-red-500' : 'border border-gray-200'
             ]">
-                <!-- Name -->
                 <h2 class="text-xl font-semibold text-left text-gray-800 mb-4">{{ actuator.name }}</h2>
 
                 <div class="flex items-center justify-between">
-                    <!-- Icon + Status -->
                     <div class="flex items-center gap-2">
                         <i class="pi pi-bolt text-2xl text-slate-800"></i>
                         <span class="text-md font-semibold' 'text-red-600' 'text-gray-500">
@@ -59,7 +55,6 @@ const confirmToggleAll = () => {
                         </span>
                     </div>
 
-                    <!-- Power Toggle Checkbox with Icon -->
                     <label class="relative cursor-pointer w-10 h-10">
                         <input type="checkbox" v-model="actuator.isOn" class="sr-only" />
                         <div :class="[
@@ -75,7 +70,6 @@ const confirmToggleAll = () => {
             </div>
         </div>
 
-        <!-- Confirm Modal -->
         <div v-if="showModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
             <div class="bg-white rounded-xl p-6 shadow-lg w-full max-w-sm">
                 <h3 class="text-lg font-semibold mb-4 text-slate-800">
