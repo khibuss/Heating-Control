@@ -32,9 +32,10 @@ export default {
 
     // Avvia aggiornamento ogni 10 secondi
     this.updateInterval = setInterval(async () => {
+      await this.getActuators();
       await this.fetchSensorData();
       this.pairSensorAct();
-    }, 10000);
+    }, 3000);
   },
   beforeUnmount() {
     // 🧹 Pulisce l'intervallo se il componente viene distrutto
@@ -111,7 +112,15 @@ export default {
           stateDesired
         });
 
-        this.serverResponseSingles[id] = response.data.receivedData.stateDesired;
+        const confirmedState = response.data.receivedData.stateDesired;
+        this.serverResponseSingles[id] = confirmedState;
+
+        // Sync back to localsData
+        this.localsData = this.localsData.map(item =>
+          item.actuatorName === id
+            ? { ...item, actuatorStatus: confirmedState }
+            : item
+        );
         this.currentMode = 'individual';
       } catch (error) {
         console.error('Error sending data:', error);
@@ -120,8 +129,8 @@ export default {
 
     // Usa l'API per aggiornare tutti gli attuatori
     async setAllActuators(stateDesired) {
-      for (const actuator of this.actuators) {
-        await this.setSingleActuator(actuator.id, stateDesired);
+      for (const data of this.localsData) {
+        await this.setSingleActuator(data.actuatorName, stateDesired);
       }
       this.currentMode = 'global';
     },
@@ -199,7 +208,7 @@ export default {
                         @change="setSingleActuator(item.actuatorName, item.actuatorStatus)" class="sr-only" />
                       <div :class="[
                         'w-full h-full flex items-center justify-center rounded-full border transition-colors',
-                        serverResponseSingles[item.actuatorName]
+                        item.actuatorStatus
                           ? 'bg-red-500 text-white border-red-600'
                           : 'bg-gray-100 text-slate-700 border-gray-300'
                       ]">
