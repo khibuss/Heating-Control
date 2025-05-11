@@ -68,6 +68,7 @@ export default {
           temperature: sensor.temperature,
           humidity: sensor.humidity,
           actuatorStatus: actuator?.status ?? null,
+          actuatorDisconnected: actuator?.connectionStatus === 'disconnected',
           actuatorName: actuator?.name || actuator?.id,
           location: sensor.location,
           sensorDisconnected: sensor.disconnected || false,
@@ -186,7 +187,7 @@ export default {
 
             <!-- Actuator Card -->
             <div class="flex-1">
-              <div v-if="item.actuatorStatus !== null">
+              <div v-if="item.actuatorStatus !== null && !item.actuatorDisconnected">
                 <div class="rounded-xl p-4 text-center h-full transition-all"
                   :class="item.actuatorStatus ? 'border-2 border-red-500' : 'border-2 border-slate-50'">
                   <!-- Actuator Name -->
@@ -218,9 +219,11 @@ export default {
                   </div>
                 </div>
               </div>
-
-              <div v-else>
-                <span class="text-gray-500 ml-6">Nessun attuatore associato</span>
+              <div v-else-if="item.actuatorDisconnected" class="flex items-center justify-center h-full">
+                <span class="text-red-500 text-center text-lg">Attuatore disconnesso</span>
+              </div>
+              <div v-else class="flex items-center justify-center h-full">
+                <span class="text-gray-500 text-center text-lg">Nessun attuatore associato</span>
               </div>
             </div>
 

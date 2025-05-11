@@ -164,12 +164,27 @@ app.get('/actuators/:idActuator', async (req, res) => {
  */
 app.get("/listActuators", async (req, res) => {
     try {
-        res.json(await getAllActuators());
+        const actuators = await getAllActuators();
+
+        const nowInSeconds = Math.floor(Date.now() / 1000);
+        const ONE_MINUTE = 60;
+
+        const enrichedActuators = actuators.map(act => {
+            const isDisconnected = (nowInSeconds - act.lastSeen) > ONE_MINUTE;
+
+            return {
+                ...act,
+                connectionStatus: isDisconnected ? "disconnected" : "connected"
+            };
+        });
+        res.json(enrichedActuators);
+        
     } catch (error) {
         console.error(error);
         res.status(500).send('Error retrieving actuators');
     }
 });
+
 
 /**
  * @route POST /updateActuator
