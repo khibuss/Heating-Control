@@ -167,10 +167,10 @@ app.get("/listActuators", async (req, res) => {
         const actuators = await getAllActuators();
 
         const nowInSeconds = Math.floor(Date.now() / 1000);
-        const ONE_MINUTE = 60;
+        const MAX_TIME = 10;
 
         const enrichedActuators = actuators.map(act => {
-            const isDisconnected = (nowInSeconds - act.lastSeen) > ONE_MINUTE;
+            const isDisconnected = (nowInSeconds - act.lastSeen) > MAX_TIME;
 
             return {
                 ...act,
@@ -178,7 +178,7 @@ app.get("/listActuators", async (req, res) => {
             };
         });
         res.json(enrichedActuators);
-        
+
     } catch (error) {
         console.error(error);
         res.status(500).send('Error retrieving actuators');
