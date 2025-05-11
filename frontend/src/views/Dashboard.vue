@@ -130,9 +130,10 @@ export default {
 
     // Usa l'API per aggiornare tutti gli attuatori
     async setAllActuators(stateDesired) {
-      for (const data of this.localsData) {
-        await this.setSingleActuator(data.actuatorName, stateDesired);
-      }
+      await Promise.all(
+        this.localsData.map(data => this.setSingleActuator(data.actuatorName, stateDesired))
+      );
+
       this.currentMode = 'global';
     },
 
