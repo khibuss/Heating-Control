@@ -3,15 +3,9 @@
 #include <MQTT.h>
 #include <ArduinoJson.h>
 #include <time.h>
-#include <DHT.h>
-
+#include <Stepper.h>
 
 #define emptyString String()
-
-// DHT11 Humidity and Temperature Sensor
-#define DHTPIN D4
-#define DHTTYPE DHT11
-DHT dht(DHTPIN, DHTTYPE);
 
 // Error handling functions
 #include "errors.h"
@@ -23,6 +17,7 @@ DHT dht(DHTPIN, DHTTYPE);
 const int MQTT_PORT = 8883;
 
 // Define subscription and publication topics (on thing shadow)
+const char MQTT_SUB_TOPIC[] = "$aws/things/" THINGNAME "/shadow/update/delta";
 const char MQTT_PUB_TOPIC[] = "$aws/things/" THINGNAME "/shadow/update";
 
 
@@ -42,10 +37,17 @@ BearSSL::X509List client_crt(client_cert);
 BearSSL::PrivateKey key(privkey);
 
 // Initialize MQTT client
-MQTTClient client;
+MQTTClient client(1024); //buffer size 1024 to read long payload
 unsigned long lastMs = 0;
 time_t now;
 time_t nowish = 1510592825;
+
+const int revolution = 200; // Revolution steps
+int motorStatus = 0; // state of the motor
+Stepper stepper(revolution, D1, D2, D5, D6); // Initialize the stepper library on D1,D2,D5,D6
+
+int PUBLISH_DELAY = 1000*60;  // every minute
+
 
 // Get time through Simple Network Time Protocol
 void NTPConnect(void) {
@@ -65,7 +67,35 @@ void NTPConnect(void) {
 }
 
 // MQTT management of incoming messages
-void messageReceived(String &topic, String &payload) {}
+void messageReceived(String &topic, String &payload) {
+  Serial.println("Received message from: " + topic + " - " + payload);
+  
+  // Allocate a static or dynamic JSON document with enough capacity
+  const size_t capacity = 512; 
+  DynamicJsonDocument doc(capacity);
+
+  // Safely parse the payload
+  DeserializationError error = deserializeJson(doc, payload);
+
+  if (error) {
+    Serial.print("deserializeJson() failed: ");
+    Serial.println(error.f_str());
+    return;
+  }
+
+  // Safely extract the "status" field
+  if (doc["state"].containsKey("status")) {
+    bool status = doc["state"]["status"];
+    Serial.print("Desired Status: ");
+    Serial.println(status ? "ON" : "OFF");
+    motorStatus = (status ? 1 : 0);
+    sendData();
+  } else {
+    Serial.println("No 'status' in message");
+  }
+  
+  
+}
 
 // MQTT Broker connection
 void connectToMqtt(bool nonBlocking = false) {
@@ -73,6 +103,11 @@ void connectToMqtt(bool nonBlocking = false) {
   while (!client.connected()) {
     if (client.connect(THINGNAME)) {
       Serial.println("connected!");
+      if (client.subscribe(MQTT_SUB_TOPIC))
+          Serial.println("subscribed!");
+      else
+       lwMQTTErr(client.lastError());;
+          
     } else {
       Serial.print("SSL Error Code: ");
       Serial.println(net.getLastSSLError());
@@ -105,7 +140,6 @@ void verifyWiFiAndMQTT(void) {
   connectToMqtt();
 }
 
-
 // MQTT management of outgoing messages
 void sendData(void) {
   DynamicJsonDocument jsonBuffer(JSON_OBJECT_SIZE(3) + 100);
@@ -113,12 +147,14 @@ void sendData(void) {
   JsonObject state = root.createNestedObject("state");
   JsonObject state_reported = state.createNestedObject("reported");
 
-  // Read data from the light sensor
-  float h = dht.readHumidity();
-  float t = dht.readTemperature();
-
-  state_reported["temperature"] = t;
-  state_reported["humidity"] = h;
+  if (motorStatus == 0){
+    state_reported["status"] = false;
+  }
+  else{
+    state_reported["status"] = true;
+  }
+  
+  state_reported["location"] = LOCAL;
 
   Serial.printf("Sending [%s]: ", MQTT_PUB_TOPIC);
   serializeJson(root, Serial);
@@ -133,6 +169,8 @@ void setup() {
   Serial.begin(115200);
   delay(5000);
   Serial.println();
+  stepper.setSpeed(80); // Set motor speed at 80 rpm
+
   
   WiFi.hostname(THINGNAME);
   WiFi.mode(WIFI_STA);
@@ -147,14 +185,16 @@ void setup() {
 }
 
 void loop() {
+
   now = time(nullptr);
   if (!client.connected()) {
     verifyWiFiAndMQTT();
   } else {
     client.loop();
-    if (millis() - lastMs > 2000) {
+    if (millis() - lastMs > PUBLISH_DELAY) {
       lastMs = millis();
       sendData();      
     }
   }
+  stepper.step(motorStatus);  // Move motor
 }
