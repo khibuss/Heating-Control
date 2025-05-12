@@ -15,15 +15,6 @@ PATH_TO_KEY = "../gateway/certificates/device-private.pem.key"
 PATH_TO_ROOT = "../gateway/certificates/root_CA1.pem"
 PUBLISH_DELAY = 5  # secondi
 
-# ==== Scelta numero di attuatori ====
-num_actuators = questionary.text(
-    "🔢 Quanti attuatori vuoi simulare? (max 4)",
-    validate=lambda val: val.isdigit() and 0 < int(val) <= 4 or "Inserisci un numero tra 1 e 4"
-).ask()
-
-NUM_ACTUATORS = int(num_actuators)
-actuator_names = [f"actuator{i+1}" for i in range(NUM_ACTUATORS)]
-
 # ==== Mappa delle location ====
 location_map = {
     "actuator1": "Salotto",
@@ -32,13 +23,23 @@ location_map = {
     "actuator4": "Camera da letto"
 }
 
+# ==== Selezione interattiva degli attuatori ====
+selected_actuators = questionary.checkbox(
+    "🛠️ Seleziona gli attuatori da simulare:",
+    choices=list(location_map.keys())
+).ask()
+
+if not selected_actuators:
+    print("❌ Nessun attuatore selezionato. Uscita.")
+    exit()
+
 # ==== Stato iniziale attuatori ====
 actuators = {
     name: {
         "status": False,
         "location": location_map.get(name, "Sconosciuto")
     }
-    for name in actuator_names
+    for name in selected_actuators
 }
 
 # ==== Connessione al broker MQTT ====
@@ -82,7 +83,7 @@ def publish(actuator_name, state):
     print(f"📤 [{actuator_name}] Stato → {payload}")
 
 # ==== Iscrizione ai topic delta ====
-for name in actuator_names:
+for name in selected_actuators:
     delta_topic = f"$aws/things/{name}/shadow/update/delta"
     mqtt_client.subscribe(delta_topic, 1, delta_callback(name))
     print(f"📡 Iscritto a {delta_topic}")

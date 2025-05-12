@@ -1,3 +1,4 @@
 simulator/*
 node_modules
 package-lock.json
+arduino_scripts/certificates

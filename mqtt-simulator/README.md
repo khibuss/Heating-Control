@@ -10,7 +10,7 @@ Questo script Python simula l'invio di dati da sensori a AWS IoT Core via MQTT, 
 ## 📦 Requisiti
 
 - Python 3.7+
-- Certificati AWS IoT
+- Certificati AWS IoT in `../gateway/certificates/`
 - File `.env` in `../gateway/` con la variabile `AWS_ENDPOINT`
 
 ## 🛠️ Librerie necessarie

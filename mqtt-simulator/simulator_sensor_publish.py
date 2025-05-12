@@ -28,13 +28,6 @@ if not selected_sensors:
     print("❌ Nessun sensore selezionato. Uscita.")
     exit()
 
-# ==== Chiedi quanti messaggi inviare ====
-num_messages = questionary.text(
-    "📨 Quanti messaggi vuoi inviare PER OGNI sensore?",
-    validate=lambda val: val.isdigit() and int(val) > 0 or "Inserisci un numero positivo"
-).ask()
-NUM_MESSAGES = int(num_messages)
-
 # ==== Connessione al broker MQTT ====
 mqtt_client = AWSIoTMQTTClient(CLIENT_ID)
 mqtt_client.configureEndpoint(ENDPOINT, 8883)
@@ -45,24 +38,26 @@ mqtt_client.connect()
 print("✅ Connesso")
 
 # ==== Pubblicazione dei messaggi ====
-print(f"\n📡 Inizio pubblicazione ({NUM_MESSAGES} messaggi per ciascun sensore)\n")
+print(f"\n📡 Inizio pubblicazione messaggi\n")
 
-for i in range(NUM_MESSAGES):
-    for sensor in selected_sensors:
-        topic = f"$aws/things/{sensor}/shadow/update"
-        payload = {
-            "state": {
-                "reported": {
-                    "temperature": random.randint(-20, 40),
-                    "humidity": random.randint(0, 100)
+try:
+    while True:
+        for sensor in selected_sensors:
+            topic = f"$aws/things/{sensor}/shadow/update"
+            payload = {
+                "state": {
+                    "reported": {
+                        "temperature": random.randint(-20, 40),
+                        "humidity": random.randint(0, 100)
+                    }
                 }
             }
-        }
-        mqtt_client.publish(topic, json.dumps(payload), 1)
-        print(f"✅ [{sensor}] → {payload}")
-        time.sleep(PUBLISH_DELAY / len(selected_sensors))
-
-print("\n📴 Fine pubblicazione")
+            mqtt_client.publish(topic, json.dumps(payload), 1)
+            print(f"✅ [{sensor}] → {payload}")
+            time.sleep(PUBLISH_DELAY / len(selected_sensors))
+        time.sleep(10)
+except KeyboardInterrupt:
+    print("\n⛔ Interruzione da tastiera. Uscita...")
 
 # ==== Disconnessione ====
 mqtt_client.disconnect()
