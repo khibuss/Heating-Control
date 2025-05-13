@@ -47,12 +47,6 @@ const router = createRouter({
                     //meta: { requiresAuth: true }
                 },
                 {
-                    path: '/control',
-                    name: 'control',
-                    component: () => import('@/views/Control.vue')
-                    //meta: { requiresAuth: true }
-                },
-                {
                     path: '/config',
                     name: 'configuration',
                     component: () => import('@/views/Config.vue')
@@ -86,6 +80,12 @@ const router = createRouter({
             path: '/auth/error',
             name: 'error',
             component: () => import('@/views/pages/auth/Error.vue')
+        },
+        //Catch-all others route (must be the last one on the route list)
+        {
+            path: "/:pathMatch(.*)*",
+            name: "error404",
+            component: () => import('@/views/pages/NotFound.vue')
         }
     ]
 });
