@@ -19,7 +19,8 @@ const port = 8000;
 const { startMqttClient, publish_single_updateActuator } = require('./mqttClient');
 const { getLastFiveSensorReadings, getSensorsId, getAllActuators, getActuatorFromId } = require('./dbService');
 const { startHeatingSystem, markConfigurationDirty } = require('./controllerDevices');
-const { setLowerThreshold, setUpperThreshold } = require("./thresholdService"); 
+const { saveConfiguration, loadConfiguration} = require('./configurationService');
+const { setLowerThreshold, setUpperThreshold, getLowerThreshold,getUpperThreshold } = require("./thresholdService"); 
 const { authenticateToken } = require('./middleware/authentication'); // Import del middleware
 const { checkValidTimestamp, calculateAverages, getLastSensorReadingAveraged } = require('./utils')
 
@@ -220,51 +221,15 @@ app.post("/updateActuator", async (req, res) => {
     }
 });
 
-/**
- * @route POST /thresholds/upper
- * @description Update the upper temperature threshold
- * @param {number} req.body.upperThreshold - New upper threshold
- * @returns {Object} 200 - Threshold updated successfully
- * @returns {Error} 400 - Invalid input
- */
-app.post("/thresholds/upper", (req, res) => {
-    const upperThreshold = req.body.upperThreshold;
-    if (typeof upperThreshold !== 'number'){
-        return res.status(400).json({error: "Invalid Threshold"});
-    }
-
-    setUpperThreshold(upperThreshold);
-    res.status(200).json({message: "Upper threshold updated", upperThreshold});
-});
-
-/**
- * @route POST /thresholds/lower
- * @description Update the lower temperature threshold
- * @param {number} req.body.lowerThreshold - New lower threshold
- * @returns {Object} 200 - Threshold updated successfully
- * @returns {Error} 400 - Invalid input
- */
-app.post("/thresholds/lower", (req, res) => {
-    const lowerThreshold = req.body.lowerThreshold;
-    if (typeof lowerThreshold !== 'number'){
-        return res.status(400).json({error: "Invalid Threshold"});
-    }
-
-    setLowerThreshold(lowerThreshold);
-    res.status(200).json({message: "Lower threshold updated", lowerThreshold});
-});
-
-/**
- * @route POST /configuration
- * @description Aggiorna la configurazione del sistema (modalità e sensore selezionato)
- * @param {string} req.body.mode - Modalità di funzionamento ("global" o "single")
- * @param {string} [req.body.selectedSensor] - ID del sensore (obbligatorio se mode è "single")
- * @returns {Object} 200 - Configurazione aggiornata correttamente
- * @returns {Error} 400 - Input non valido
- */
 app.post("/configuration", (req, res) => {
-    const { mode, selectedSensor } = req.body;
+    const { lower, upper, mode, selectedSensor } = req.body;
 
+    // Validazione soglie
+    if (typeof lower !== 'number' || typeof upper !== 'number') {
+        return res.status(400).json({ error: "Invalid thresholds" });
+    }
+
+    // Validazione configurazione
     if (mode !== "global" && mode !== "single") {
         return res.status(400).json({ error: "Invalid mode. Must be 'global' or 'single'." });
     }
@@ -272,6 +237,10 @@ app.post("/configuration", (req, res) => {
     if (mode === "single" && (!selectedSensor || typeof selectedSensor !== 'string')) {
         return res.status(400).json({ error: "selectedSensor is required in 'single' mode." });
     }
+
+    // Esegui aggiornamenti
+    setLowerThreshold(lower);
+    setUpperThreshold(upper);
 
     const newConfig = {
         mode,
@@ -281,8 +250,35 @@ app.post("/configuration", (req, res) => {
     saveConfiguration(newConfig);
     markConfigurationDirty(); // forza il reload nel ciclo di controllo
 
-    res.status(200).json({ message: "Configuration updated", configuration: newConfig });
+    res.status(200).json({
+        message: "Configuration and thresholds updated successfully",
+        configuration: newConfig,
+        thresholds: { lower, upper }
+    });
 });
+
+/**
+ * @route GET /configuration
+ * @description Ottieni configurazione corrente e soglie
+ * @returns {Object} 200 - Oggetto con lower, upper, mode, selectedSensor
+ */
+app.get("/getConfiguration", (req, res) => {
+    try {
+        const configuration = loadConfiguration();
+        const lower = getLowerThreshold();
+        const upper = getUpperThreshold();
+
+        res.status(200).json({
+            lower,
+            upper,
+            mode: configuration.mode,
+            selectedSensor: configuration.selectedSensor || ""
+        });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to load configuration" });
+    }
+});
+
 
 app.use((req, res, next) => {
     res.status(404).send(`The route ${req.originalUrl} does not exist`)

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --ignore data/thresholds.json index.js",
+    "dev": "nodemon --ignore data/thresholds.json --ignore data/configuration.json index.js",
     "test": "jest --forceExit"
   },
   "keywords": [],

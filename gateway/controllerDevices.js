@@ -105,11 +105,13 @@ async function handleGlobalMode() {
 /**
  * Gestisce la modalità "single", basata su un singolo sensore.
  */
-async function handleSingleMode(temp) {
-    if (temp != null) {
-        checkTemperature(temp);
+async function handleSingleMode(idsens) {
+    const lastReading = await getLastSensorReadingAveraged(idsens);
+    if (lastReading && lastReading.temperature != null) {
+        const temperature = parseFloat(lastReading.temperature);
+        checkTemperature(temperature);
     } else {
-        console.log("No sensor data detected.");
+        console.log("No sensor data detected for ", idsens);
     }
 }
 

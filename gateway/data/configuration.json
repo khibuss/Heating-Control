@@ -1,4 +1,4 @@
 {
-  "mode": "global",
-  "selectedSensor": ""
+  "mode": "single",
+  "selectedSensor": "sensor1"
 }
