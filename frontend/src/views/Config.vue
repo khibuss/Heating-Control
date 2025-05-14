@@ -37,6 +37,9 @@
             class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-300" />
         </div>
       </div>
+      <p v-if="isInvalidThreshold" class="text-red-500 text-sm mt-1">
+        ⚠️ La soglia bassa deve essere inferiore alla soglia alta.
+      </p>
 
       <!-- Control Type -->
       <div>
@@ -62,10 +65,13 @@
 
       <!-- Submit -->
       <div class="pt-6 text-right">
-        <button type="submit"
-          class="bg-sky-500 hover:bg-sky-600 text-white font-semibold px-6 py-2 rounded-lg shadow transition">
+        <button
+          type="submit"
+          :disabled="isInvalidThreshold"
+          class="bg-sky-500 hover:bg-sky-600 text-white font-semibold px-6 py-2 rounded-lg shadow transition disabled:opacity-50 disabled:cursor-not-allowed">
           Salva configurazione
         </button>
+
       </div>
     </form>
 
@@ -98,6 +104,7 @@ const listSensors = ref([]);
 
 // Calcolo se si usa media
 const useAverage = computed(() => controlType.value === 'average');
+const isInvalidThreshold = computed(() => formLower.value >= formUpper.value);
 
 const configPreviewText = computed(() => {
   if (formControlType.value === 'average') {

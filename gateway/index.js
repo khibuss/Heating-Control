@@ -221,12 +221,17 @@ app.post("/updateActuator", async (req, res) => {
     }
 });
 
+
 app.post("/configuration", (req, res) => {
     const { lower, upper, mode, selectedSensor } = req.body;
 
     // Validazione soglie
     if (typeof lower !== 'number' || typeof upper !== 'number') {
         return res.status(400).json({ error: "Invalid thresholds" });
+    }
+    
+    if (lower >= upper) {
+        return res.status(400).json({ error: "Lower threshold must be less than upper threshold." });
     }
 
     // Validazione configurazione
