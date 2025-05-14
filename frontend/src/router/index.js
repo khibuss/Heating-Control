@@ -11,38 +11,22 @@ const router = createRouter({
                 {
                     path: '/',
                     name: 'dashboard',
-                    component: () => import('@/views/Dashboard.vue')
-                    //meta: { requiresAuth: true }
+                    component: () => import('@/views/Dashboard.vue'),
+                    meta: { requiresAuth: true }
                 },
                 {
                     path: '/config',
                     name: 'configuration',
-                    component: () => import('@/views/Config.vue')
-                    //meta: { requiresAuth: true }
+                    component: () => import('@/views/Config.vue'),
+                    meta: { requiresAuth: true }
                 }
             ]
         },
         {
-            path: '/pages/notfound',
-            name: 'notfound',
-            component: () => import('@/views/pages/NotFound.vue')
-        },
-
-        {
             path: '/auth/login',
             name: 'login',
-            component: () => import('@/views/pages/auth/Login.vue')
-            //meta: { requiresAuth: false } // Esplicito che non richiede auth
-        },
-        {
-            path: '/auth/access',
-            name: 'accessDenied',
-            component: () => import('@/views/pages/auth/Access.vue')
-        },
-        {
-            path: '/auth/error',
-            name: 'error',
-            component: () => import('@/views/pages/auth/Error.vue')
+            component: () => import('@/views/pages/auth/Login.vue'),
+            meta: { requiresAuth: false } // Esplicito che non richiede auth
         },
         //Catch-all others route (must be the last one on the route list)
         {

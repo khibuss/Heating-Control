@@ -30,7 +30,7 @@ const togglePump = () => {
       <!-- Se sensore attivo -->
       <template v-else>
         <!-- Sensor Name -->
-        <h2 class="text-xl font-semibold text-slate-800 mb-6">{{ name }}</h2>
+        <h2 class="text-xl font-semibold text-slate-800 mb-6">Dati ambientali</h2>
 
         <!-- Sensor Stats -->
         <div class="flex justify-around mb-6">

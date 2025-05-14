@@ -1,89 +1,101 @@
 <template>
-  <div class="card space-y-6">
+  <div class="space-y-10">
 
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-slate-800">Configurazione Riscaldamento</h1>
+    <div class="card space-y-6">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-semibold text-slate-800">Configurazione Riscaldamento</h1>
+      </div>
+
+      <!-- Current Config Preview -->
+      <div class="bg-slate-100 rounded-xl p-6 border border-slate-200 shadow-inner text-lg space-y-2">
+        <p class="text-slate-700">
+          <strong>Temperatura di riferimento:</strong><span class="text-lg ml-4 text-[#ff6666]"> {{ configPreviewText
+          }}</span>
+        </p>
+        <p class="text-slate-700">
+          <strong>Soglia bassa:</strong><span class="text-xl ml-4 text-[#ff6000]"> {{ lower
+          }}°C</span>
+        </p>
+        <p class="text-slate-700">
+          <strong>Soglia alta:</strong> <span class="text-xl ml-4 text-[#ff6000]"> {{ upper
+          }}°C</span>
+        </p>
+      </div>
     </div>
 
-    <!-- Current Config Preview -->
-    <div class="bg-slate-100 rounded-xl p-4 border border-slate-200 shadow-inner">
-      <p class="text-slate-700 mb-1">
-        <strong>Temperatura di riferimento:</strong> {{ configPreviewText }}
-      </p>
-      <p class="text-slate-700"><strong>Soglia bassa:</strong> {{ lower }}°C</p>
-      <p class="text-slate-700"><strong>Soglia alta:</strong> {{ upper }}°C</p>
-    </div>
-  </div>
+    <!-- Form Section -->
+    <div class="card space-y-8">
+      <ConfirmDialog />
 
-  <div class="card">
-    <ConfirmDialog />
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-      <h2 class="text-xl font-semibold text-slate-800 mb-6">Edit</h2>
-    </div>
-    <!-- Form -->
-    <form @submit.prevent="saveConfig" class="space-y-6">
-      <!-- Thresholds -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Form Header -->
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-semibold text-slate-800">Modifica Configurazione</h2>
+      </div>
+
+      <!-- Form -->
+      <form @submit.prevent="saveConfig" class="space-y-8">
+
+        <!-- Thresholds -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <label class="block text-base font-lg text-slate-700 mb-2">Soglia bassa (°C)</label>
+            <input v-model.number="formLower" type="number"
+              class="w-full border border-slate-300 rounded-lg px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-sky-300" />
+          </div>
+          <div>
+            <label class="block text-base font-lg text-slate-700 mb-2">Soglia alta (°C)</label>
+            <input v-model.number="formUpper" type="number"
+              class="w-full border border-slate-300 rounded-lg px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-sky-300" />
+          </div>
+        </div>
+
+        <p v-if="isInvalidThreshold" class="text-red-500 text-base">
+          ⚠️ La soglia bassa deve essere inferiore alla soglia alta.
+        </p>
+
+        <!-- Control Type -->
         <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">Soglia bassa (°C)</label>
-          <input v-model.number="formLower" type="number"
-            class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-300" />
+          <label class="block text-base font-lg text-slate-700 mb-3">Tipo controllo:</label>
+          <div class="flex flex-wrap gap-6">
+            <label class="inline-flex items-center text-lg text-slate-700">
+              <input type="radio" value="average" v-model="formControlType" class="mr-2" />
+              Media globale
+            </label>
+            <label class="inline-flex items-center text-lg text-slate-700">
+              <input type="radio" value="sensor" v-model="formControlType" class="mr-2" />
+              Sensore specifico
+            </label>
+          </div>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">Soglia alta (°C)</label>
-          <input v-model.number="formUpper" type="number"
-            class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-300" />
+
+        <!-- Sensor Selection -->
+        <div v-if="formControlType === 'sensor'">
+          <label class="block text-base font-lg text-slate-700 mb-2">Seleziona sensore:</label>
+          <Dropdown v-model="formSensor" :options="listSensors" optionLabel="name" placeholder="Seleziona sensore"
+            class="w-full md:w-80" />
         </div>
-      </div>
-      <p v-if="isInvalidThreshold" class="text-red-500 text-sm mt-1">
-        ⚠️ La soglia bassa deve essere inferiore alla soglia alta.
-      </p>
 
-      <!-- Control Type -->
-      <div>
-        <label class="block text-sm font-medium text-slate-600 mb-2">Tipo controllo:</label>
-        <div class="flex gap-6">
-          <label class="inline-flex items-center text-slate-700">
-            <input type="radio" value="average" v-model="formControlType" class="mr-2" />
-            Media globale
-          </label>
-          <label class="inline-flex items-center text-slate-700">
-            <input type="radio" value="sensor" v-model="formControlType" class="mr-2" />
-            Sensore specifico
-          </label>
+        <!-- Submit Button -->
+        <div class="pt-4 text-right">
+          <button type="submit" :disabled="isInvalidThreshold"
+            class="bg-sky-500 hover:bg-sky-600 text-white font-semibold px-8 py-3 text-lg rounded-xl shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed">
+            Salva configurazione
+          </button>
         </div>
-      </div>
 
-      <!-- Sensor Selection -->
-      <div v-if="formControlType === 'sensor'" class="mt-4">
-        <label class="block text-sm font-medium text-slate-600 mb-1">Seleziona sensore:</label>
-        <Dropdown v-model="formSensor" :options="listSensors" optionLabel="name" placeholder="Seleziona sensore"
-          class="w-full md:w-64" />
-      </div>
-
-      <!-- Submit -->
-      <div class="pt-6 text-right">
-        <button
-          type="submit"
-          :disabled="isInvalidThreshold"
-          class="bg-sky-500 hover:bg-sky-600 text-white font-semibold px-6 py-2 rounded-lg shadow transition disabled:opacity-50 disabled:cursor-not-allowed">
-          Salva configurazione
-        </button>
-
-      </div>
-    </form>
+      </form>
+    </div>
 
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref, computed } from 'vue';
 import api from '@/utils/api';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Dropdown from 'primevue/dropdown';
 import { useConfirm } from 'primevue/useconfirm';
+import { computed, onMounted, ref } from 'vue';
 
 const confirm = useConfirm();
 

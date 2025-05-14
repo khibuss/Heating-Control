@@ -1,51 +1,25 @@
 <script setup>
 import { ref } from 'vue';
-
+import { useRouter } from 'vue-router'; // Import useRouter to handle navigation
 import AppMenuItem from './AppMenuItem.vue';
+
+const router = useRouter(); // Use the useRouter function
 
 const model = ref([
     {
         label: 'Views',
         items: [
             { label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' },
-            //{ label: 'Control', icon: 'pi pi-fw pi-tablet', to: '/control' },
-            { label: 'Configuration', icon: 'pi pi-fw pi-cog', to: '/config' }
-        ]
-    },
-    {
-        label: 'Pages',
-        icon: 'pi pi-fw pi-briefcase',
-        to: '/pages',
-        items: [
-            {
-                label: 'Auth',
-                icon: 'pi pi-fw pi-user',
-                items: [
-                    {
-                        label: 'Login',
-                        icon: 'pi pi-fw pi-sign-in',
-                        to: '/auth/login'
-                    },
-                    {
-                        label: 'Error',
-                        icon: 'pi pi-fw pi-times-circle',
-                        to: '/auth/error'
-                    },
-                    {
-                        label: 'Access Denied',
-                        icon: 'pi pi-fw pi-lock',
-                        to: '/auth/access'
-                    }
-                ]
-            },
-            {
-                label: 'Not Found',
-                icon: 'pi pi-fw pi-exclamation-circle',
-                to: '/pages/notfound'
-            }
+            { label: 'Configurazione', icon: 'pi pi-fw pi-cog', to: '/config' }
         ]
     }
 ]);
+
+// Logout method to clear token and redirect
+function logout() {
+    localStorage.removeItem('admin_token');  // Remove the token
+    router.push({ name: 'login' });           // Use router.push() to redirect to the login page
+}
 </script>
 
 <template>
@@ -55,6 +29,28 @@ const model = ref([
             <li v-if="item.separator" class="menu-separator"></li>
         </template>
     </ul>
+    <!-- Add a logout button at the bottom -->
+    <div class="logout-container">
+        <button @click="logout"
+            class="logout-btn bg-red-500 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg shadow transition">
+            Logout
+        </button>
+    </div>
 </template>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.logout-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 600px;
+}
+
+.logout-btn {
+    width: 100%;
+    /* Make the button full width */
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+</style>
