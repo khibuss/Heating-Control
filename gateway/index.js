@@ -31,6 +31,7 @@ const {
   markConfigurationDirty,
   getAverageTemperature,
   getInfoActivation,
+  getLastAutoEvent,
 } = require("./controllerDevices");
 const {
   saveConfiguration,
@@ -125,6 +126,7 @@ app.get("/api/validate-token", (req, res) => {
     res.status(401).json({ valid: false, message: "Token non valido" });
   }
 });
+
 /**
  * @route GET /temperatures/:idSensor
  * @description Ritorna l'ultima lettura del sensore specificato
@@ -343,6 +345,15 @@ app.get("/getInfoActivation", (req, res) => {
     console.log(err);
     res.status(500).json({ error: "Failed to get info" });
   }
+});
+
+
+app.get('/lastAutoEvent', (req, res) => {
+  const event = getLastAutoEvent();
+  if (!event) {
+    return res.status(204).send(); // Nessun contenuto
+  }
+  res.status(200).json(event);
 });
 
 app.use((req, res, next) => {

@@ -36,6 +36,19 @@ function markConfigurationDirty() {
   configurationDirty = true;
 }
 
+let lastAutoEvent = null;
+
+function setLastAutoEvent(event) {
+  lastAutoEvent = {
+    timestamp: new Date().toISOString(),
+    event,
+  };
+}
+
+function getLastAutoEvent() {
+  return lastAutoEvent;
+}
+
 /**
  * Calcola la temperatura media più recente da tutti i sensori disponibili.
  *
@@ -146,59 +159,51 @@ async function checkTemperature(temperature) {
   if (temperature < lower) {
     try {
       const allActuators = await getAllActuators();
+      let changed = false;
+
       allActuators.forEach((actuator) => {
         if (!actuator["status"]) {
           publish_single_updateActuator(actuator.id, true);
-          automaticActivation = true;
+          changed = true;
         }
       });
 
-      if (automaticActivation) {
-        console.log(
-          `Temperature under lower threshold (${lower}°C)! Activating actuators...`
-        );
+      if (changed) {
+        console.log(`🔥 Attuatori attivati per temperatura sotto soglia (${lower}°C)`);
+        setLastAutoEvent(`Attivazione automatica: ${temperature}°C sotto ${lower}°C`);
+        changed = false;
       } else {
-        console.log(
-          `Temperature under lower threshold (${lower}°C)! All actuators already on`
-        );
+        console.log(`✔ Tutti gli attuatori erano già attivi`);
       }
-      automaticActivation = false;
     } catch (error) {
-      console.error("Failed to activate actuators:", error);
+      console.error("❌ Errore attivazione attuatori:", error);
     }
-    // Notifier.notify(
-    //   "Heat Pumps Activated 🔥",
-    //   `⚡ Temperature (${temperature}°C) is below the lower threshold (${lower}°C).`
-    // );
+
   } else if (temperature > upper) {
     try {
       const allActuators = await getAllActuators();
+      let changed = false;
+
       allActuators.forEach((actuator) => {
         if (actuator["status"]) {
           publish_single_updateActuator(actuator.id, false);
-          automaticDeactivation = true;
+          changed = true;
         }
       });
 
-      if (automaticDeactivation) {
-        console.log(
-          `🔥 Temperature over upper threshold (${upper}°C)! Disactivating actuators...`
-        );
+      if (changed) {
+        console.log(`❄️ Attuatori disattivati per temperatura sopra soglia (${upper}°C)`);
+        setLastAutoEvent(`Disattivazione automatica: ${temperature}°C sopra ${upper}°C`);
+        changed = false;
       } else {
-        console.log(
-          `Temperature over upper threshold (${upper}°C)! All actuators already off`
-        );
+        console.log(`✔ Tutti gli attuatori erano già spenti`);
       }
-      automaticDeactivation = false;
     } catch (error) {
-      console.error("Failed to deactivate actuators:", error);
+      console.error("❌ Errore disattivazione attuatori:", error);
     }
-    // Notifier.notify(
-    //   "Heat Pumps Deactivated ❄️",
-    //   `⚡ Temperature (${temperature}°C) is above the upper threshold (${upper}°C).`
-    // );
   }
 }
+
 
 /**
  * Imposta manualmente la configurazione del sistema.
@@ -222,4 +227,5 @@ module.exports = {
   checkTemperature,
   markConfigurationDirty,
   getInfoActivation,
+  getLastAutoEvent
 };

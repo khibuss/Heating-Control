@@ -21,8 +21,7 @@ export default {
       actReg: null,
       updateInterval: null,
       avg_temp: null,
-      automatic_activation: false,
-      automatic_deactivation: false
+      lastAutoEvent: null,
     };
   },
   async mounted() {
@@ -31,6 +30,7 @@ export default {
     this.isLoading = false
     await this.fetchSensorData();
     this.pairSensorAct();
+    await this.getLastAutoEvent();
 
     // Avvia aggiornamento ogni 10 secondi
     this.updateInterval = setInterval(async () => {
@@ -38,6 +38,7 @@ export default {
       await this.fetchSensorData();
       this.pairSensorAct();
       await this.getAverageTemp();
+      await this.getLastAutoEvent();
 
     }, 3000);
   },
@@ -154,6 +155,20 @@ export default {
         this.localsData.map(data => this.setSingleActuator(data.actuatorName, stateDesired))
       );
     },
+    async getLastAutoEvent() {
+      try {
+        const response = await api.get('/lastAutoEvent');
+        this.lastAutoEvent = response.data;
+      } catch (error) {
+        if (error.response?.status !== 204) {
+          console.error('Errore caricamento ultimo evento automatico:', error.message);
+        }
+      }
+    },
+    formatDate(isoString) {
+  const date = new Date(isoString);
+  return date.toLocaleString();
+},
 
     logout() {
       localStorage.removeItem('admin_token');  // Rimuovi il token
@@ -189,6 +204,10 @@ export default {
     <div v-else-if="sensorReg === true && localsData.length > 0">
       <div class="bg-slate-50 my-5 rounded-lg p-4 text-left text-slate-800 text-xl font-medium">
         Temperatura media: <span class="text-2xl text-red-500 font-semibold ml-2 mr-3">{{ avg_temp }}°C</span>
+      </div>
+      <div v-if="lastAutoEvent" class="mb-4 p-4 rounded-lg bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800">
+        <p><strong>⚠ Ultimo evento automatico:</strong> {{ lastAutoEvent.event }}</p>
+        <p class="text-sm text-slate-600">Orario: {{ formatDate(lastAutoEvent.timestamp) }}</p>
       </div>
       <div v-if="automatic_activation === true" class="text-green-500 font-medium">
         🔄 Last actuator change was automatic
