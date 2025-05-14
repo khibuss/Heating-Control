@@ -22,6 +22,8 @@ export default {
       updateInterval: null,
       avg_temp: null,
       lastAutoEvent: null,
+      togglingActuators: new Set(),
+      pendingActuatorStates: {},
     };
   },
   async mounted() {
@@ -40,7 +42,7 @@ export default {
       await this.getAverageTemp();
       await this.getLastAutoEvent();
 
-    }, 3000);
+    }, 1000);
   },
   beforeUnmount() {
     // 🧹 Pulisce l'intervallo se il componente viene distrutto
@@ -80,6 +82,35 @@ export default {
         };
       });
     },
+    async toggleActuator(item) {
+      const name = item.actuatorName;
+      const desiredState = !item.actuatorStatus;
+      this.togglingActuators.add(name);
+      this.pendingActuatorStates[name] = desiredState;
+
+      try {
+        await this.setSingleActuator(name, desiredState);
+
+        // Wait up to 30s for the polling to reflect the new state
+        const maxWait = 30000; // 30 seconds
+        const interval = 500;
+        let waited = 0;
+
+        while (waited < maxWait) {
+          const currentItem = this.localsData.find(x => x.actuatorName === name);
+          if (currentItem?.actuatorStatus === desiredState) break;
+          await new Promise(resolve => setTimeout(resolve, interval));
+          waited += interval;
+        }
+
+      } catch (err) {
+        console.error("Errore nel cambio stato:", err);
+      } finally {
+        this.togglingActuators.delete(name);
+        delete this.pendingActuatorStates[name];
+      }
+    },
+
     // Usa l'API per ottenere gli attuatori
     async getActuators() {
       try {
@@ -138,12 +169,6 @@ export default {
         const confirmedState = response.data.receivedData.stateDesired;
         this.serverResponseSingles[id] = confirmedState;
 
-        // Sync back to localsData
-        this.localsData = this.localsData.map(item =>
-          item.actuatorName === id
-            ? { ...item, actuatorStatus: confirmedState }
-            : item
-        );
       } catch (error) {
         console.error('Error sending data:', error);
       }
@@ -166,9 +191,9 @@ export default {
       }
     },
     formatDate(isoString) {
-  const date = new Date(isoString);
-  return date.toLocaleString();
-},
+      const date = new Date(isoString);
+      return date.toLocaleString();
+    },
 
     logout() {
       localStorage.removeItem('admin_token');  // Rimuovi il token
@@ -246,22 +271,20 @@ export default {
                       </span>
                     </div>
 
-                    <!--  Circular Switch -->
+                    <!-- Circular Switch -->
+                    <!-- Circular Switch -->
                     <div class="flex items-center justify-center gap-4">
-
-                      <label class="relative w-16 h-10">
-                        <input type="checkbox" v-model="item.actuatorStatus"
-                          @change="setSingleActuator(item.actuatorName, item.actuatorStatus)" class="sr-only" />
-                        <div :class="[
-                          'w-full h-full flex items-center justify-center rounded-full border transition-colors',
-                          item.actuatorStatus
-                            ? 'bg-red-500 text-white border-red-600'
-                            : 'bg-gray-100 text-slate-700 border-gray-300'
-                        ]">
-                          <i class="pi pi-power-off text-xl"></i>
-                        </div>
-                      </label>
+                      <button @click="toggleActuator(item)" :disabled="togglingActuators.has(item.actuatorName)"
+                        class="relative w-16 h-10 flex items-center justify-center rounded-full border transition-colors"
+                        :class="item.actuatorStatus
+                          ? 'bg-red-500 text-white border-red-600'
+                          : 'bg-gray-100 text-slate-700 border-gray-300'">
+                        <i v-if="!togglingActuators.has(item.actuatorName)" class="pi pi-power-off text-xl"></i>
+                        <i v-else class="pi pi-spin pi-spinner text-xl text-slate-500"></i>
+                      </button>
                     </div>
+
+
                   </div>
                 </div>
                 <div v-else-if="item.actuatorDisconnected" class="flex items-center justify-center h-full">

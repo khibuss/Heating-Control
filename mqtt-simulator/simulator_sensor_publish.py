@@ -48,7 +48,7 @@ try:
             payload = {
                 "state": {
                     "reported": {
-                        "temperature": random.randint(30, 40),
+                        "temperature": random.randint(0, 10),
                         "humidity": random.randint(0, 100)
                     }
                 }
