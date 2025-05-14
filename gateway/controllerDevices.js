@@ -23,7 +23,9 @@ const {
 const { getLastSensorReadingAveraged } = require("./utils");
 const Notifier = require("./telegramService");
 
-let statusActs = false; // Stato corrente degli attuatori
+let automaticActivation = false;
+let automaticDeactivation = false;
+
 let configuration = loadConfiguration(); // Caricamento configurazione
 let configurationDirty = false; // Flag per ricaricare la configurazione
 
@@ -65,6 +67,10 @@ async function getAverageTemperature() {
   const average =
     temperatures.reduce((sum, temp) => sum + temp, 0) / temperatures.length;
   return average.toFixed(2);
+}
+
+function getInfoActivation() {
+  return [automaticDeactivation, automaticDeactivation];
 }
 
 /**
@@ -135,8 +141,6 @@ async function checkTemperature(temperature) {
   const lower = getLowerThreshold();
   const upper = getUpperThreshold();
 
-  let activated = false;
-  let deactivated = false;
   console.log(`📊 Temperature compared: ${temperature}°C`);
 
   if (temperature < lower) {
@@ -145,11 +149,11 @@ async function checkTemperature(temperature) {
       allActuators.forEach((actuator) => {
         if (!actuator["status"]) {
           publish_single_updateActuator(actuator.id, true);
-          activated = true;
+          automaticActivation = true;
         }
       });
 
-      if (activated) {
+      if (automaticActivation) {
         console.log(
           `Temperature under lower threshold (${lower}°C)! Activating actuators...`
         );
@@ -158,7 +162,7 @@ async function checkTemperature(temperature) {
           `Temperature under lower threshold (${lower}°C)! All actuators already on`
         );
       }
-      activated = false;
+      automaticActivation = false;
     } catch (error) {
       console.error("Failed to activate actuators:", error);
     }
@@ -172,11 +176,11 @@ async function checkTemperature(temperature) {
       allActuators.forEach((actuator) => {
         if (actuator["status"]) {
           publish_single_updateActuator(actuator.id, false);
-          deactivated = true;
+          automaticDeactivation = true;
         }
       });
 
-      if (deactivated) {
+      if (automaticDeactivation) {
         console.log(
           `🔥 Temperature over upper threshold (${upper}°C)! Disactivating actuators...`
         );
@@ -185,7 +189,7 @@ async function checkTemperature(temperature) {
           `Temperature over upper threshold (${upper}°C)! All actuators already off`
         );
       }
-      deactivated = false;
+      automaticDeactivation = false;
     } catch (error) {
       console.error("Failed to deactivate actuators:", error);
     }
@@ -217,4 +221,5 @@ module.exports = {
   getAverageTemperature,
   checkTemperature,
   markConfigurationDirty,
+  getInfoActivation,
 };

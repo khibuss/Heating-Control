@@ -31,7 +31,7 @@ function startMqttClient() {
         (topic, payload) => {
           const decoder = new TextDecoder("utf-8");
           const decodedPayload = decoder.decode(payload);
-          console.log(`Ricevuto messaggio su ${topic}:`, decodedPayload);
+          //console.log(`Ricevuto messaggio su ${topic}:`, decodedPayload);
 
           const thingName = topic.split("/")[2];
           if (topic.includes("/sensor")) {
@@ -50,7 +50,7 @@ function startMqttClient() {
           const decoder = new TextDecoder("utf-8");
           const decodedPayload = decoder.decode(payload);
           temperatureData[topic] = decodedPayload;
-          console.log(`Ricevuto messaggio su ${topic}:`, decodedPayload);
+          //console.log(`Ricevuto messaggio su ${topic}:`, decodedPayload);
         }
       );
     })
