@@ -1,7 +1,7 @@
 <script>
 import SensorCard from '@/components/dashboard/SensorCard.vue';
 
-import api from '@/utils/api'; // Assicurati di importare l'istanza di axios
+import api from '@/utils/api';
 
 
 export default {
@@ -10,8 +10,6 @@ export default {
   },
   data() {
     return {
-      serverResponseCentral: '',
-      serverResponseSingles: [null],
       actuators: [],
       sensorsID: [],
       sensors: [],
@@ -24,6 +22,7 @@ export default {
       lastAutoEvent: null,
       togglingActuators: new Set(),
       pendingActuatorStates: {},
+      temperatureisLoading: true,
     };
   },
   async mounted() {
@@ -34,15 +33,15 @@ export default {
     this.pairSensorAct();
     await this.getLastAutoEvent();
 
-    // Avvia aggiornamento ogni 10 secondi
+    // Avvia aggiornamento ogni 2 secondi
     this.updateInterval = setInterval(async () => {
       await this.getActuators();
       await this.fetchSensorData();
       this.pairSensorAct();
       await this.getAverageTemp();
+      this.temperatureisLoading = false;
       await this.getLastAutoEvent();
-
-    }, 1000);
+    }, 2000);
   },
   beforeUnmount() {
     // 🧹 Pulisce l'intervallo se il componente viene distrutto
@@ -92,8 +91,8 @@ export default {
         await this.setSingleActuator(name, desiredState);
 
         // Wait up to 30s for the polling to reflect the new state
-        const maxWait = 30000; // 30 seconds
-        const interval = 500;
+        const maxWait = 10000; // 30 seconds
+        const interval = 300;
         let waited = 0;
 
         while (waited < maxWait) {
@@ -120,15 +119,6 @@ export default {
       } catch (error) {
         console.error('Error fetching actuators');
         this.actReg = false;
-      }
-    },
-    async getInfoAutomaticControl() {
-      try {
-        const response = await api.get('/getInfoActivation');
-        this.automatic_activation = response.data.automaticActivation;
-        this.automatic_deactivation = response.data.automaticActivation;
-      } catch (error) {
-        console.error('Error: ', error);
       }
     },
     async getSensorIDs() {
@@ -165,21 +155,57 @@ export default {
           id,
           stateDesired
         });
-
-        const confirmedState = response.data.receivedData.stateDesired;
-        this.serverResponseSingles[id] = confirmedState;
-
       } catch (error) {
         console.error('Error sending data:', error);
       }
     },
 
-    // Usa l'API per aggiornare tutti gli attuatori
     async setAllActuators(stateDesired) {
-      await Promise.all(
-        this.localsData.map(data => this.setSingleActuator(data.actuatorName, stateDesired))
-      );
+      const names = this.localsData.map(data => data.actuatorName);
+
+      // Set loading state for each actuator
+      names.forEach(name => {
+        this.togglingActuators.add(name);
+        this.pendingActuatorStates[name] = stateDesired;
+      });
+
+      try {
+        // Send all requests in parallel
+        await Promise.all(
+          names.map(name => this.setSingleActuator(name, stateDesired))
+        );
+
+        // Wait briefly to give backend time to update
+        const maxWait = 3000;
+        const interval = 300;
+        let waited = 0;
+
+        while (waited < maxWait) {
+          await this.getActuators(); // Refresh actuator data
+          this.pairSensorAct();
+
+          const pending = names.filter(name => {
+            const item = this.localsData.find(d => d.actuatorName === name);
+            return item?.actuatorStatus !== stateDesired;
+          });
+
+          if (pending.length === 0) break;
+
+          await new Promise(resolve => setTimeout(resolve, interval));
+          waited += interval;
+        }
+
+      } catch (error) {
+        console.error("Errore nel settaggio collettivo:", error);
+      } finally {
+        // Clear toggling indicators
+        names.forEach(name => {
+          this.togglingActuators.delete(name);
+          delete this.pendingActuatorStates[name];
+        });
+      }
     },
+
     async getLastAutoEvent() {
       try {
         const response = await api.get('/lastAutoEvent');
@@ -227,7 +253,17 @@ export default {
     </div>
 
     <div v-else-if="sensorReg === true && localsData.length > 0">
-      <div class="bg-slate-50 my-5 rounded-lg p-4 text-left text-slate-800 text-xl font-medium">
+      <div v-if="temperatureisLoading"
+        class="bg-slate-50 my-5 rounded-lg p-4 text-left text-slate-800 text-xl font-medium">
+        Temperatura media: <span class="text-2xl text-red-400 font-semibold ml-2 mr-3"> <i
+            class="pi pi-spin pi-spinner text-xl"></i>
+        </span>
+      </div>
+      <div v-else-if="avg_temp === null"
+        class="bg-slate-50 my-5 rounded-lg p-4 text-left text-slate-800 text-xl font-medium">
+        Temperatura media: <span class="text-xl text-slate-500 font-semibold ml-2 mr-3">Non disponibile</span>
+      </div>
+      <div v-else class="bg-slate-50 my-5 rounded-lg p-4 text-left text-slate-800 text-xl font-medium">
         Temperatura media: <span class="text-2xl text-red-500 font-semibold ml-2 mr-3">{{ avg_temp }}°C</span>
       </div>
       <div v-if="lastAutoEvent" class="mb-4 p-4 rounded-lg bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800">
@@ -261,7 +297,7 @@ export default {
                   <div class="rounded-xl p-4 text-center h-full transition-all"
                     :class="item.actuatorStatus ? 'border-2 border-red-500' : 'border-2 border-slate-50'">
                     <!-- Actuator Name -->
-                    <h2 class="text-xl font-semibold text-slate-800 mb-4">{{ item.actuatorName }}</h2>
+                    <h2 class="text-xl font-semibold text-slate-800 mb-4">Stato pompa di calore</h2>
 
                     <!-- Status Text -->
                     <div class="mb-4">

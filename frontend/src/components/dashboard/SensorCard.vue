@@ -22,7 +22,7 @@ const togglePump = () => {
 
       <!-- Se sensore disconnesso -->
       <template v-if="disconnected">
-        <h2 class="text-xl font-semibold text-slate-800 mb-6">{{ name }}</h2>
+        <h2 class="text-xl font-semibold text-slate-800 mb-6">Dati ambientali</h2>
         <div class="text-red-500 text-lg font-semibold mb-6">⚠️ Sensore non rilevato</div>
         <div class="text-sm text-gray-500">Controllare la connessione o l'alimentazione</div>
       </template>

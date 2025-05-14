@@ -1,35 +1,3 @@
-// import { createRouter, createWebHistory } from "vue-router";
-
-// import Control from "./pages/control.vue";
-// import Home from "./pages/home.vue";
-// import Login from "./pages/login.vue";
-
-// const routes = [
-//     {
-//         path: "/",
-//         name: "Login",
-//         component: Login
-//     },
-//     {
-//         path: "/home",
-//         name: "Home",
-//         component: Home
-
-//     },
-//     {
-//         path: "/control",
-//         name: "Control Panel",
-//         component: Control
-
-//     }
-// ];
-
-// const router = createRouter({
-//     history: createWebHistory(),
-//     routes,
-// });
-
-// export default router;
 import AppLayout from '@/layout/AppLayout.vue';
 import { createRouter, createWebHistory } from 'vue-router';
 
@@ -54,11 +22,6 @@ const router = createRouter({
                 }
             ]
         },
-        // {
-        //     path: '/landing',
-        //     name: 'landing',
-        //     component: () => import('@/views/pages/Landing.vue')
-        // },
         {
             path: '/pages/notfound',
             name: 'notfound',
@@ -83,8 +46,8 @@ const router = createRouter({
         },
         //Catch-all others route (must be the last one on the route list)
         {
-            path: "/:pathMatch(.*)*",
-            name: "error404",
+            path: '/:pathMatch(.*)*',
+            name: 'error404',
             component: () => import('@/views/pages/NotFound.vue')
         }
     ]
@@ -121,7 +84,6 @@ router.beforeEach(async (to, from, next) => {
 
     // Verifica la validità del token con il backend
     const isValid = await validateToken(token);
-    //console.log(isValid);
 
     if (isValid) {
         // Token valido - procedi
