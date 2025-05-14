@@ -13,7 +13,6 @@ export default {
       serverResponseCentral: '',
       serverResponseSingles: [null],
       actuators: [],
-      currentMode: 'individual', // NEW: active configuration display
       sensorsID: [],
       sensors: [],
       localsData: [],
@@ -122,7 +121,6 @@ export default {
             ? { ...item, actuatorStatus: confirmedState }
             : item
         );
-        this.currentMode = 'individual';
       } catch (error) {
         console.error('Error sending data:', error);
       }
@@ -133,8 +131,6 @@ export default {
       await Promise.all(
         this.localsData.map(data => this.setSingleActuator(data.actuatorName, stateDesired))
       );
-
-      this.currentMode = 'global';
     },
 
     logout() {

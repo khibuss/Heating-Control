@@ -1,10 +1,11 @@
-import time
+import json
 import os
 import random
-import json
+import time
+
+import questionary
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 from dotenv import load_dotenv
-import questionary
 
 # ==== Configurazione ====
 load_dotenv(dotenv_path="../gateway/.env")
@@ -47,7 +48,7 @@ try:
             payload = {
                 "state": {
                     "reported": {
-                        "temperature": random.randint(-20, 40),
+                        "temperature": random.randint(30, 40),
                         "humidity": random.randint(0, 100)
                     }
                 }

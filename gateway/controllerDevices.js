@@ -5,17 +5,23 @@
  */
 
 const { publish_single_updateActuator } = require("./mqttClient");
-const { getLastFiveSensorReadings, getSensorsId, getAllActuators } = require("./dbService");
 const {
-    getLowerThreshold,
-    getUpperThreshold,
-    setLowerThreshold,
-    setUpperThreshold
-} = require('./thresholdService');
-const { loadConfiguration, saveConfiguration } = require("./configurationService");
-const { getLastSensorReadingAveraged } = require('./utils');
-const Notifier = require('./telegramService');
-
+  getLastFiveSensorReadings,
+  getSensorsId,
+  getAllActuators,
+} = require("./dbService");
+const {
+  getLowerThreshold,
+  getUpperThreshold,
+  setLowerThreshold,
+  setUpperThreshold,
+} = require("./thresholdService");
+const {
+  loadConfiguration,
+  saveConfiguration,
+} = require("./configurationService");
+const { getLastSensorReadingAveraged } = require("./utils");
+const Notifier = require("./telegramService");
 
 let statusActs = false; // Stato corrente degli attuatori
 let configuration = loadConfiguration(); // Caricamento configurazione
@@ -25,7 +31,7 @@ let configurationDirty = false; // Flag per ricaricare la configurazione
  * Segna la configurazione come "dirty" per forzarne la ricarica nel ciclo successivo.
  */
 function markConfigurationDirty() {
-    configurationDirty = true;
+  configurationDirty = true;
 }
 
 /**
@@ -36,26 +42,29 @@ function markConfigurationDirty() {
  * @returns {Promise<number|null>} Temperatura media o null se nessun dato è disponibile.
  */
 async function getAverageTemperature() {
-    const sensorsID = await getSensorsId();
-    const temperatures = [];
+  const sensorsID = await getSensorsId();
+  const temperatures = [];
 
-    console.log(sensorsID);
+  console.log(sensorsID);
 
-    for (const sensor of sensorsID) {
-        const lastRead = await getLastSensorReadingAveraged(sensor.id);
-        
-        if (!lastRead) {
-            console.log(`⚠️ Nessuna lettura trovata per il sensore ${sensor.id}, dati non trovati nel DB oppure timestamp troppo vecchio`);
-            continue;
-        }
+  for (const sensor of sensorsID) {
+    const lastRead = await getLastSensorReadingAveraged(sensor.id);
 
-        temperatures.push(parseFloat(lastRead.temperature));
+    if (!lastRead) {
+      console.log(
+        `⚠️ Nessuna lettura trovata per il sensore ${sensor.id}, dati non trovati nel DB oppure timestamp troppo vecchio`
+      );
+      continue;
     }
 
-    if (temperatures.length === 0) return null;
+    temperatures.push(parseFloat(lastRead.temperature));
+  }
 
-    const average = temperatures.reduce((sum, temp) => sum + temp, 0) / temperatures.length;
-    return average.toFixed(2);
+  if (temperatures.length === 0) return null;
+
+  const average =
+    temperatures.reduce((sum, temp) => sum + temp, 0) / temperatures.length;
+  return average.toFixed(2);
 }
 
 /**
@@ -63,56 +72,56 @@ async function getAverageTemperature() {
  * Verifica periodicamente le temperature e controlla gli attuatori.
  */
 async function startHeatingSystem() {
-    while (true) {
-        try {
-            if (configurationDirty) {
-                configuration = loadConfiguration();
-                configurationDirty = false;
-                console.log("🔁 Configurazione ricaricata");
-            }
+  while (true) {
+    try {
+      if (configurationDirty) {
+        configuration = loadConfiguration();
+        configurationDirty = false;
+        console.log("🔁 Configurazione ricaricata");
+      }
 
-            switch (configuration.mode) {
-                case "global":
-                    await handleGlobalMode();
-                    break;
-                case "single":
-                    await handleSingleMode(configuration.selectedSensor);
-                    break;
-                default:
-                    console.log('Unknown mode');
-                    break;
-            }
-        } catch (err) {
-            console.error("Errore nel ciclo del riscaldamento:", err);
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 5000));
+      switch (configuration.mode) {
+        case "global":
+          await handleGlobalMode();
+          break;
+        case "single":
+          await handleSingleMode(configuration.selectedSensor);
+          break;
+        default:
+          console.log("Unknown mode");
+          break;
+      }
+    } catch (err) {
+      console.error("Errore nel ciclo del riscaldamento:", err);
     }
+
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  }
 }
 
 /**
  * Gestisce la modalità "global", basata sulla media delle temperature di tutti i sensori.
  */
 async function handleGlobalMode() {
-    const avgTemp = await getAverageTemperature();
-    if (avgTemp != null) {
-        checkTemperature(avgTemp);
-    } else {
-        console.log("No sensor data available yet.");
-    }
+  const avgTemp = await getAverageTemperature();
+  if (avgTemp != null) {
+    checkTemperature(avgTemp);
+  } else {
+    console.log("No sensor data available yet.");
+  }
 }
 
 /**
  * Gestisce la modalità "single", basata su un singolo sensore.
  */
 async function handleSingleMode(idsens) {
-    const lastReading = await getLastSensorReadingAveraged(idsens);
-    if (lastReading && lastReading.temperature != null) {
-        const temperature = parseFloat(lastReading.temperature);
-        checkTemperature(temperature);
-    } else {
-        console.log("No sensor data detected for ", idsens);
-    }
+  const lastReading = await getLastSensorReadingAveraged(idsens);
+  if (lastReading && lastReading.temperature != null) {
+    const temperature = parseFloat(lastReading.temperature);
+    checkTemperature(temperature);
+  } else {
+    console.log("No sensor data detected for ", idsens);
+  }
 }
 
 /**
@@ -123,46 +132,68 @@ async function handleSingleMode(idsens) {
  * @param {number} temperature - Temperatura da verificare
  */
 async function checkTemperature(temperature) {
-    const lower = getLowerThreshold();
-    const upper = getUpperThreshold();
+  const lower = getLowerThreshold();
+  const upper = getUpperThreshold();
 
-    console.log(`📊 Temperature compared: ${temperature}°C`);
+  let activated = false;
+  let deactivated = false;
+  console.log(`📊 Temperature compared: ${temperature}°C`);
 
-    if (temperature < lower && !statusActs) {
-        console.log(`Temperature under lower threshold (${lower}°C)! Activating actuators...`);
-        statusActs = true;
-
-        try {
-            const allActuators = await getAllActuators();
-            allActuators.forEach(actuator =>
-                publish_single_updateActuator(actuator.id, true)
-            );
-
-        } catch (error) {
-            console.error("Failed to activate actuators:", error);
+  if (temperature < lower) {
+    try {
+      const allActuators = await getAllActuators();
+      allActuators.forEach((actuator) => {
+        if (!actuator["status"]) {
+          publish_single_updateActuator(actuator.id, true);
+          activated = true;
         }
-        Notifier.notify(
-          'Heat Pumps Activated 🔥',
-          `⚡ Temperature (${temperature}°C) is below the lower threshold (${lower}°C).`
-        );
-    } else if (temperature > upper && statusActs) {
-        console.log(`🔥 Temperature over upper threshold (${upper}°C)! Disactivating actuators...`);
-        statusActs = false;
-        
-        try {
-            const allActuators = await getAllActuators();
-            allActuators.forEach(actuator =>
-                publish_single_updateActuator(actuator.id, false)
-            );
+      });
 
-        } catch (error) {
-            console.error("Failed to deactivate actuators:", error);
-        }
-        Notifier.notify(
-          'Heat Pumps Deactivated ❄️',
-          `⚡ Temperature (${temperature}°C) is above the upper threshold (${upper}°C).`
+      if (activated) {
+        console.log(
+          `Temperature under lower threshold (${lower}°C)! Activating actuators...`
         );
+      } else {
+        console.log(
+          `Temperature under lower threshold (${lower}°C)! All actuators already on`
+        );
+      }
+      activated = false;
+    } catch (error) {
+      console.error("Failed to activate actuators:", error);
     }
+    // Notifier.notify(
+    //   "Heat Pumps Activated 🔥",
+    //   `⚡ Temperature (${temperature}°C) is below the lower threshold (${lower}°C).`
+    // );
+  } else if (temperature > upper) {
+    try {
+      const allActuators = await getAllActuators();
+      allActuators.forEach((actuator) => {
+        if (actuator["status"]) {
+          publish_single_updateActuator(actuator.id, false);
+          deactivated = true;
+        }
+      });
+
+      if (deactivated) {
+        console.log(
+          `🔥 Temperature over upper threshold (${upper}°C)! Disactivating actuators...`
+        );
+      } else {
+        console.log(
+          `Temperature over upper threshold (${upper}°C)! All actuators already off`
+        );
+      }
+      deactivated = false;
+    } catch (error) {
+      console.error("Failed to deactivate actuators:", error);
+    }
+    // Notifier.notify(
+    //   "Heat Pumps Deactivated ❄️",
+    //   `⚡ Temperature (${temperature}°C) is above the upper threshold (${upper}°C).`
+    // );
+  }
 }
 
 /**
@@ -173,17 +204,17 @@ async function checkTemperature(temperature) {
  * @param {string|null} sensorId - ID del sensore da utilizzare (solo in modalità "single")
  */
 function setConfiguration(newMode, sensorId = null) {
-    configuration.mode = newMode;
-    configuration.selectedSensor = sensorId;
+  configuration.mode = newMode;
+  configuration.selectedSensor = sensorId;
 
-    console.log(`Mode set to: ${newMode}, Selected sensor: ${sensorId}`);
+  console.log(`Mode set to: ${newMode}, Selected sensor: ${sensorId}`);
 }
 
 // Export dei metodi pubblici
 module.exports = {
-    startHeatingSystem,
-    setConfiguration,
-    getAverageTemperature,
-    checkTemperature,
-    markConfigurationDirty
+  startHeatingSystem,
+  setConfiguration,
+  getAverageTemperature,
+  checkTemperature,
+  markConfigurationDirty,
 };
