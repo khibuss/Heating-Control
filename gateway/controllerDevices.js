@@ -5,26 +5,11 @@
  */
 
 const { publish_single_updateActuator } = require("./mqttClient");
-const {
-  getLastFiveSensorReadings,
-  getSensorsId,
-  getAllActuators,
-} = require("./dbService");
-const {
-  getLowerThreshold,
-  getUpperThreshold,
-  setLowerThreshold,
-  setUpperThreshold,
-} = require("./thresholdService");
-const {
-  loadConfiguration,
-  saveConfiguration,
-} = require("./configurationService");
+const { getSensorsId, getAllActuators } = require("./dbService");
+const { getLowerThreshold, getUpperThreshold } = require("./thresholdService");
+const { loadConfiguration } = require("./configurationService");
 const { getLastSensorReadingAveraged } = require("./utils");
 const Notifier = require("./telegramService");
-
-let automaticActivation = false;
-let automaticDeactivation = false;
 
 let configuration = loadConfiguration(); // Caricamento configurazione
 let configurationDirty = false; // Flag per ricaricare la configurazione
@@ -80,10 +65,6 @@ async function getAverageTemperature() {
   const average =
     temperatures.reduce((sum, temp) => sum + temp, 0) / temperatures.length;
   return average.toFixed(2);
-}
-
-function getInfoActivation() {
-  return [automaticDeactivation, automaticDeactivation];
 }
 
 /**
@@ -169,8 +150,16 @@ async function checkTemperature(temperature) {
       });
 
       if (changed) {
-        console.log(`🔥 Attuatori attivati per temperatura sotto soglia (${lower}°C)`);
-        setLastAutoEvent(`Attivazione automatica: ${temperature}°C sotto ${lower}°C`);
+        Notifier.notify(
+          "Heat Pumps Activated 🔥",
+          `⚡ Temperature (${temperature}°C) is below the lower threshold (${lower}°C).`
+        );
+        console.log(
+          `🔥 Attuatori attivati per temperatura sotto soglia (${lower}°C)`
+        );
+        setLastAutoEvent(
+          `Attivazione automatica: ${temperature}°C sotto ${lower}°C`
+        );
         changed = false;
       } else {
         console.log(`✔ Tutti gli attuatori erano già attivi`);
@@ -178,7 +167,6 @@ async function checkTemperature(temperature) {
     } catch (error) {
       console.error("❌ Errore attivazione attuatori:", error);
     }
-
   } else if (temperature > upper) {
     try {
       const allActuators = await getAllActuators();
@@ -192,8 +180,16 @@ async function checkTemperature(temperature) {
       });
 
       if (changed) {
-        console.log(`❄️ Attuatori disattivati per temperatura sopra soglia (${upper}°C)`);
-        setLastAutoEvent(`Disattivazione automatica: ${temperature}°C sopra ${upper}°C`);
+        Notifier.notify(
+          "Heat Pumps Deactivated ❄️",
+          `⚡ Temperature (${temperature}°C) is above the upper threshold (${upper}°C).`
+        );
+        console.log(
+          `❄️ Attuatori disattivati per temperatura sopra soglia (${upper}°C)`
+        );
+        setLastAutoEvent(
+          `Disattivazione automatica: ${temperature}°C sopra ${upper}°C`
+        );
         changed = false;
       } else {
         console.log(`✔ Tutti gli attuatori erano già spenti`);
@@ -203,7 +199,6 @@ async function checkTemperature(temperature) {
     }
   }
 }
-
 
 /**
  * Imposta manualmente la configurazione del sistema.
@@ -226,6 +221,5 @@ module.exports = {
   getAverageTemperature,
   checkTemperature,
   markConfigurationDirty,
-  getInfoActivation,
-  getLastAutoEvent
+  getLastAutoEvent,
 };

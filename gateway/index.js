@@ -21,7 +21,6 @@ const {
   publish_single_updateActuator,
 } = require("./mqttClient");
 const {
-  getLastFiveSensorReadings,
   getSensorsId,
   getAllActuators,
   getActuatorFromId,
@@ -44,11 +43,7 @@ const {
   getUpperThreshold,
 } = require("./thresholdService");
 const { authenticateToken } = require("./middleware/authentication"); // Import del middleware
-const {
-  checkValidTimestamp,
-  calculateAverages,
-  getLastSensorReadingAveraged,
-} = require("./utils");
+const { getLastSensorReadingAveraged } = require("./utils");
 
 // Middleware globali
 app.use(express.json()); // Analizza i body delle richieste come JSON
@@ -61,13 +56,6 @@ startHeatingSystem(); // Avvio del sistema di controllo temperatura
 app.listen(port, () => {
   console.log("🚀 Server running on http://localhost:" + port);
 });
-
-// app.use((req, res, next) => {
-//     if (req.path === '/login' || req.path === '/api/validate-token') {
-//         return next(); // lascia passare il login e la validazione
-//     }
-//     authenticateToken(req, res, next); // protegge tutto il resto
-// });
 
 /**
  * @route GET /
@@ -347,8 +335,7 @@ app.get("/getInfoActivation", (req, res) => {
   }
 });
 
-
-app.get('/lastAutoEvent', (req, res) => {
+app.get("/lastAutoEvent", (req, res) => {
   const event = getLastAutoEvent();
   if (!event) {
     return res.status(204).send(); // Nessun contenuto

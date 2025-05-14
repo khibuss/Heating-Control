@@ -255,16 +255,16 @@ export default {
     <div v-else-if="sensorReg === true && localsData.length > 0">
       <div v-if="temperatureisLoading"
         class="bg-slate-50 my-5 rounded-lg p-4 text-left text-slate-800 text-xl font-medium">
-        Temperatura media: <span class="text-2xl text-red-400 font-semibold ml-2 mr-3"> <i
+        Temperatura media globale: <span class="text-2xl text-red-400 font-semibold ml-2 mr-3"> <i
             class="pi pi-spin pi-spinner text-xl"></i>
         </span>
       </div>
       <div v-else-if="avg_temp === null"
         class="bg-slate-50 my-5 rounded-lg p-4 text-left text-slate-800 text-xl font-medium">
-        Temperatura media: <span class="text-xl text-slate-500 font-semibold ml-2 mr-3">Non disponibile</span>
+        Temperatura media globale: <span class="text-xl text-slate-500 font-semibold ml-2 mr-3">Non disponibile</span>
       </div>
       <div v-else class="bg-slate-50 my-5 rounded-lg p-4 text-left text-slate-800 text-xl font-medium">
-        Temperatura media: <span class="text-2xl text-red-500 font-semibold ml-2 mr-3">{{ avg_temp }}°C</span>
+        Temperatura media globale: <span class="text-2xl text-red-500 font-semibold ml-2 mr-3">{{ avg_temp }}°C</span>
       </div>
       <div v-if="lastAutoEvent" class="mb-4 p-4 rounded-lg bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800">
         <p><strong>⚠ Ultimo evento automatico:</strong> {{ lastAutoEvent.event }}</p>
