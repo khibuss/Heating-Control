@@ -184,7 +184,7 @@ app.get("/listActuators", async (req, res) => {
     const actuators = await getAllActuators();
 
     const nowInSeconds = Math.floor(Date.now() / 1000);
-    const MAX_TIME = 10;
+    const MAX_TIME = 40;
 
     const enrichedActuators = actuators.map((act) => {
       const isDisconnected = nowInSeconds - act.lastSeen > MAX_TIME;

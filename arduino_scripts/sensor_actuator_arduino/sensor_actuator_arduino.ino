@@ -3,9 +3,16 @@
 #include <MQTT.h>
 #include <ArduinoJson.h>
 #include <time.h>
+#include <DHT.h>
 #include <Stepper.h>
 
+
 #define emptyString String()
+
+// DHT11 Humidity and Temperature Sensor
+#define DHTPIN D4
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
 
 // Error handling functions
 #include "errors.h"
@@ -16,9 +23,13 @@
 // Define MQTT port
 const int MQTT_PORT = 8883;
 
-// Define subscription and publication topics (on thing shadow)
-const char MQTT_SUB_TOPIC[] = "$aws/things/" THINGNAME "/shadow/update/delta";
-const char MQTT_PUB_TOPIC[] = "$aws/things/" THINGNAME "/shadow/update";
+// Define subscription and publication topics for sensor(on thing shadow)
+const char MQTT_PUB_TOPIC_SENSOR[] = "$aws/things/" THINGNAME_SENSOR "/shadow/update";
+
+// Define subscription and publication topics for actuator (on thing shadow)
+const char MQTT_SUB_TOPIC_ACT[] = "$aws/things/" THINGNAME_ACTUATOR "/shadow/update/delta";
+const char MQTT_PUB_TOPIC_ACT[] = "$aws/things/" THINGNAME_ACTUATOR "/shadow/update";
+
 
 
 // Enable or disable summer-time
@@ -38,7 +49,9 @@ BearSSL::PrivateKey key(privkey);
 
 // Initialize MQTT client
 MQTTClient client(1024); //buffer size 1024 to read long payload
-unsigned long lastMs = 0;
+unsigned long lastMsActuator = 0;
+unsigned long lastMsSensor = 0;
+
 time_t now;
 time_t nowish = 1510592825;
 
@@ -64,7 +77,7 @@ void NTPConnect(void) {
   Serial.print(asctime(&timeinfo));
 }
 
-// MQTT management of incoming messages
+// MQTT management of incoming messages for actuator
 void messageReceived(String &topic, String &payload) {
   Serial.println("Received message from: " + topic + " - " + payload);
   
@@ -87,7 +100,7 @@ void messageReceived(String &topic, String &payload) {
     Serial.print("Desired Status: ");
     Serial.println(status ? "ON" : "OFF");
     motorStatus = (status ? 1 : 0);
-    sendData();
+    sendDataActuator();
   } else {
     Serial.println("No 'status' in message");
   }
@@ -99,13 +112,12 @@ void messageReceived(String &topic, String &payload) {
 void connectToMqtt(bool nonBlocking = false) {
   Serial.print("MQTT connecting ");
   while (!client.connected()) {
-    if (client.connect(THINGNAME)) {
+    if (client.connect(THINGNAME_SENSOR) && client.connect(THINGNAME_ACTUATOR)) {
       Serial.println("connected!");
-      if (client.subscribe(MQTT_SUB_TOPIC))
+      if (client.subscribe(MQTT_SUB_TOPIC_ACT))
           Serial.println("subscribed!");
       else
        lwMQTTErr(client.lastError());;
-          
     } else {
       Serial.print("SSL Error Code: ");
       Serial.println(net.getLastSSLError());
@@ -138,8 +150,34 @@ void verifyWiFiAndMQTT(void) {
   connectToMqtt();
 }
 
+
 // MQTT management of outgoing messages
-void sendData(void) {
+void sendDataSensor(void) {
+  DynamicJsonDocument jsonBuffer(JSON_OBJECT_SIZE(3) + 100);
+  JsonObject root = jsonBuffer.to<JsonObject>();
+  JsonObject state = root.createNestedObject("state");
+  JsonObject state_reported = state.createNestedObject("reported");
+
+  // Read data from the light sensor
+  float h = dht.readHumidity();
+  h = constrain(h, 0, 100);
+
+  float t = dht.readTemperature();
+
+  state_reported["temperature"] = t;
+  state_reported["humidity"] = h;
+
+  Serial.printf("Sending [%s]: ", MQTT_PUB_TOPIC_SENSOR);
+  serializeJson(root, Serial);
+  Serial.println();
+  char shadow[measureJson(root) + 1];
+  serializeJson(root, shadow, sizeof(shadow));
+  if (!client.publish(MQTT_PUB_TOPIC_SENSOR, shadow, false, 0))
+    lwMQTTErr(client.lastError());
+}
+
+// MQTT management of outgoing messages
+void sendDataActuator(void) {
   DynamicJsonDocument jsonBuffer(JSON_OBJECT_SIZE(3) + 100);
   JsonObject root = jsonBuffer.to<JsonObject>();
   JsonObject state = root.createNestedObject("state");
@@ -154,12 +192,12 @@ void sendData(void) {
   
   state_reported["location"] = LOCATION;
 
-  Serial.printf("Sending [%s]: ", MQTT_PUB_TOPIC);
+  Serial.printf("Sending [%s]: ", MQTT_PUB_TOPIC_ACT);
   serializeJson(root, Serial);
   Serial.println();
   char shadow[measureJson(root) + 1];
   serializeJson(root, shadow, sizeof(shadow));
-  if (!client.publish(MQTT_PUB_TOPIC, shadow, false, 0))
+  if (!client.publish(MQTT_PUB_TOPIC_ACT, shadow, false, 0))
     lwMQTTErr(client.lastError());
 }
 
@@ -168,9 +206,10 @@ void setup() {
   delay(5000);
   Serial.println();
   stepper.setSpeed(80); // Set motor speed at 80 rpm
-
   
-  WiFi.hostname(THINGNAME);
+  WiFi.hostname(THINGNAME_ACTUATOR);
+  WiFi.hostname(THINGNAME_SENSOR);
+
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, pass);
   connectToWiFi(String("Trying to connect with SSID: ") + String(ssid));
@@ -183,15 +222,17 @@ void setup() {
 }
 
 void loop() {
-
-  now = time(nullptr);
   if (!client.connected()) {
     verifyWiFiAndMQTT();
   } else {
     client.loop();
-    if (millis() - lastMs > PUBLISH_DELAY) {
-      lastMs = millis();
-      sendData();      
+    if (millis() - lastMsSensor > PUBLISH_DELAY_SENSOR) {
+      lastMsSensor = millis();
+      sendDataSensor();      
+    }
+    if (millis() - lastMsActuator > PUBLISH_DELAY_ACTUATOR) {
+      lastMsActuator = millis();
+      sendDataActuator();      
     }
   }
   stepper.step(motorStatus);  // Move motor
